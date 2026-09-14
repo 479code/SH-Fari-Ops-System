@@ -1,0 +1,15 @@
+.DS_Store
+*.log
+
+# Secrets — only the examples are committed
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Bun / build output
+node_modules/
+backend/dist/
+coverage/

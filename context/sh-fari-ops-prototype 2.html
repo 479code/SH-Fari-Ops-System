@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SH Fari Ops — Station Management &amp; Financial Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F5F9;
+  --card:#FFFFFF;
+  --border:#EBECF2;
+  --border-2:#E1E3EC;
+  --text:#171A2B;
+  --text-2:#6B7086;
+  --text-3:#9498AB;
+  --navy:#1D2140;
+  --navy-2:#2A2F55;
+  --amber:#F5A524;
+  --amber-bg:#FEF3DE;
+  --blue:#3E6DF6;
+  --blue-bg:#E9EFFE;
+  --green:#1CA96B;
+  --green-bg:#E3F7ED;
+  --red:#EF4B54;
+  --red-bg:#FDEAEB;
+  --violet:#7C5CFC;
+  --violet-bg:#EFEAFE;
+  --teal:#12A4A0;
+  --teal-bg:#E2F6F5;
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-sm:8px;
+  --shadow:0 1px 2px rgba(23,26,43,0.04), 0 8px 24px -12px rgba(23,26,43,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Manrope',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px;}
+
+/* ===== TOP NAV ===== */
+.topnav{
+  height:62px;background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 22px;gap:22px;
+  position:sticky;top:0;z-index:20;
+}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;padding-right:18px;border-right:1px solid var(--border);}
+.brand-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(155deg,var(--amber),#E08E0C);display:flex;align-items:center;justify-content:center;color:#1D2140;font-weight:800;font-size:13px;flex-shrink:0;}
+.brand-text{line-height:1.22;}
+.brand-eyebrow{font-size:10px;letter-spacing:0.6px;color:var(--text-3);font-weight:700;}
+.brand-name{font-size:14px;font-weight:800;color:var(--text);}
+
+.main-nav{display:flex;align-items:center;gap:4px;flex:1;overflow-x:auto;height:100%;}
+.nav-btn{
+  display:flex;align-items:center;gap:7px;padding:0 13px;height:100%;
+  font-size:13.3px;font-weight:600;color:var(--text-2);cursor:pointer;
+  border-bottom:2.5px solid transparent;white-space:nowrap;flex-shrink:0;
+}
+.nav-btn svg{width:16px;height:16px;flex-shrink:0;}
+.nav-btn:hover{color:var(--text);}
+.nav-btn.active{color:var(--navy);border-color:var(--amber);}
+.nav-btn .chev{width:11px;height:11px;opacity:0.6;margin-left:-1px;}
+
+.topnav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.search-pill{display:flex;align-items:center;gap:8px;background:#F5F6FA;border:1px solid var(--border-2);border-radius:20px;padding:8px 14px 8px 13px;width:200px;color:var(--text-3);font-size:12.3px;}
+.search-pill svg{width:14px;height:14px;flex-shrink:0;}
+.icon-btn{width:36px;height:36px;border-radius:11px;background:#F5F6FA;border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;color:var(--text-2);cursor:pointer;flex-shrink:0;position:relative;}
+.icon-btn svg{width:15px;height:15px;}
+.icon-btn .dot{position:absolute;top:6px;right:6px;min-width:14px;height:14px;padding:0 3px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--card);}
+.profile-chip{display:flex;align-items:center;gap:8px;background:#F5F6FA;border:1px solid var(--border-2);border-radius:24px;padding:5px 12px 5px 5px;cursor:pointer;}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.profile-chip span{font-size:12.5px;font-weight:700;}
+.profile-chip .chev{width:11px;height:11px;color:var(--text-3);}
+
+/* ===== SUB NAV ===== */
+.subnav{
+  display:none;height:46px;background:var(--card);border-bottom:1px solid var(--border);
+  align-items:center;gap:26px;padding:0 24px;position:sticky;top:62px;z-index:19;
+}
+.subnav.show{display:flex;}
+.sub-btn{
+  display:flex;align-items:center;gap:7px;height:100%;
+  font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;
+  border-bottom:2px solid transparent;
+}
+.sub-btn svg{width:14px;height:14px;}
+.sub-btn:hover{color:var(--text-2);}
+.sub-btn.active{color:var(--navy);border-color:var(--navy);}
+.sub-badge{background:var(--red-bg);color:#C23139;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:20px;}
+
+.content{padding:22px 28px 60px;max-width:1400px;margin:0 auto;}
+.page{display:none;}
+.page.active{display:block;}
+
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.page-title{font-size:20px;font-weight:800;}
+.page-desc{font-size:12.5px;color:var(--text-3);margin-top:2px;}
+.actions{display:flex;gap:9px;}
+.btn{border:1px solid var(--border-2);background:var(--card);color:var(--text);font-size:12.6px;font-weight:600;padding:9px 15px;border-radius:11px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{border-color:var(--text-3);}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+.btn-primary:hover{background:var(--navy-2);}
+.btn svg{width:14px;height:14px;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow);}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.kpi-chip{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.kpi-chip svg{width:18px;height:18px;}
+.kpi-chip.amber{background:var(--amber-bg);color:#B4720B;}
+.kpi-chip.blue{background:var(--blue-bg);color:var(--blue);}
+.kpi-chip.green{background:var(--green-bg);color:var(--green);}
+.kpi-chip.red{background:var(--red-bg);color:var(--red);}
+.kpi-chip.violet{background:var(--violet-bg);color:var(--violet);}
+.kpi-chip.teal{background:var(--teal-bg);color:var(--teal);}
+.kpi-more{color:var(--text-3);cursor:pointer;font-size:16px;line-height:1;}
+.kpi-value{font-size:23px;font-weight:800;letter-spacing:-0.3px;}
+.kpi-label{font-size:12px;color:var(--text-3);margin-top:3px;}
+.kpi-delta{font-size:11.5px;margin-top:10px;display:inline-flex;align-items:center;gap:4px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.kpi-delta.up{color:var(--green);background:var(--green-bg);}
+.kpi-delta.down{color:var(--red);background:var(--red-bg);}
+.kpi-delta span.muted{color:var(--text-3);font-weight:500;margin-left:3px;}
+
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
+.panel-head{padding:18px 20px 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.panel-head.bordered{padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.panel-title{font-size:14.5px;font-weight:800;}
+.panel-sub{font-size:11.8px;color:var(--text-3);margin-top:2px;}
+
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:1150px){.two-col,.three-col{grid-template-columns:1fr;} .kpi-grid{grid-template-columns:repeat(2,1fr);}}
+
+table{width:100%;border-collapse:collapse;font-size:12.8px;}
+thead th{text-align:left;font-size:10.6px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);font-weight:700;padding:11px 20px;background:#FAFAFD;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody td{padding:13px 20px;border-bottom:1px solid var(--border);color:var(--text-2);white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#FAFAFD;}
+td.strong,th.strong{color:var(--text);font-weight:600;}
+td.num{font-variant-numeric:tabular-nums;text-align:right;color:var(--text);font-weight:500;}
+th.num{text-align:right;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.2px;font-weight:700;padding:4px 11px;border-radius:20px;white-space:nowrap;}
+.pill.green{background:var(--green-bg);color:#128554;}
+.pill.amber{background:var(--amber-bg);color:#B4720B;}
+.pill.red{background:var(--red-bg);color:#C23139;}
+.pill.blue{background:var(--blue-bg);color:#2C50C4;}
+.pill.gray{background:#F0F1F5;color:var(--text-2);}
+.pill.violet{background:var(--violet-bg);color:#5D3FD6;}
+.mono-tag{font-size:11.6px;color:var(--text-2);background:#F5F6FA;padding:2px 7px;border-radius:5px;}
+
+.pill-tabs{display:flex;gap:22px;border-bottom:1px solid var(--border);padding:0 20px;}
+.pill-tab{padding:13px 0;font-size:12.8px;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2.5px solid transparent;}
+.pill-tab.active{color:var(--navy);border-color:var(--amber);}
+
+.filter-row{display:flex;gap:9px;padding:16px 20px;flex-wrap:wrap;align-items:center;}
+.select,.input{background:#FAFAFD;border:1px solid var(--border-2);color:var(--text);font-size:12.4px;padding:8px 12px;border-radius:9px;font-family:inherit;font-weight:500;}
+.filter-row .spacer{flex:1;}
+.search{position:relative;}
+.search input{padding-left:32px;width:200px;}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-3);}
+
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:4px 0;}
+.field label{display:block;font-size:11.8px;color:var(--text-2);margin-bottom:6px;font-weight:600;}
+.field .select,.field .input{width:100%;}
+.field .input[readonly]{color:var(--text-2);background:#F5F6FA;}
+
+.pump-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 20px;}
+.pump-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 15px;background:#FAFAFD;}
+.pump-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.pump-name{font-size:12.8px;font-weight:700;}
+.pump-row{display:flex;justify-content:space-between;font-size:12.2px;color:var(--text-2);padding:3.5px 0;}
+.pump-row span:last-child{font-weight:600;color:var(--text);}
+.pump-row.sales{border-top:1px dashed var(--border-2);margin-top:7px;padding-top:8px;}
+.pump-row.sales span:last-child{color:#B4720B;font-weight:800;}
+
+.stage-track{display:flex;align-items:center;padding:22px 20px 20px;overflow-x:auto;}
+.stage{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:116px;position:relative;}
+.stage-dot{width:26px;height:26px;border-radius:50%;background:#F0F1F5;border:2px solid var(--border-2);margin-bottom:8px;z-index:1;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px;font-weight:800;}
+.stage.done .stage-dot{background:var(--green);border-color:var(--green);color:#fff;}
+.stage.current .stage-dot{background:var(--amber);border-color:var(--amber);color:#1D2140;}
+.stage-label{font-size:11px;color:var(--text-3);text-align:center;font-weight:600;}
+.stage.done .stage-label,.stage.current .stage-label{color:var(--text);}
+.stage-line{position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--border-2);z-index:0;}
+.stage.done .stage-line{background:var(--green);}
+
+.exception-row{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
+.exception-row:last-child{border-bottom:none;}
+.exc-ico{width:34px;height:34px;border-radius:10px;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.exc-ico.amber{background:var(--amber-bg);color:#B4720B;}
+.exc-ico svg{width:16px;height:16px;}
+.exc-body{flex:1;min-width:0;}
+.exc-title{font-size:12.8px;color:var(--text);font-weight:600;}
+.exc-meta{font-size:11.3px;color:var(--text-3);margin-top:3px;}
+
+.bar-row{display:flex;align-items:center;gap:12px;padding:11px 20px;}
+.bar-label{width:126px;font-size:12.4px;color:var(--text-2);font-weight:600;flex-shrink:0;}
+.bar-track{flex:1;height:8px;background:#F0F1F5;border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;}
+.bar-val{width:100px;text-align:right;font-size:12.4px;color:var(--text);font-weight:700;flex-shrink:0;}
+
+.donut-wrap{display:flex;align-items:center;gap:22px;padding:6px 20px 20px;}
+.donut-legend{flex:1;}
+.legend-row{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.4px;color:var(--text-2);}
+.legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.legend-row b{color:var(--text);margin-left:auto;font-weight:700;}
+.area-chart{padding:6px 20px 18px;}
+
+.overlay{position:fixed;inset:0;background:rgba(23,26,43,0.42);display:none;align-items:center;justify-content:center;z-index:50;}
+.overlay.show{display:flex;}
+.modal{width:540px;max-width:92vw;max-height:86vh;overflow-y:auto;background:var(--card);border-radius:18px;box-shadow:0 20px 60px -12px rgba(23,26,43,0.3);}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-size:15.5px;font-weight:800;}
+.modal-close{cursor:pointer;color:var(--text-3);font-size:20px;line-height:1;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:#F0F1F5;}
+.modal-body{padding:20px 22px;}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px;}
+.footnote{font-size:11.6px;color:var(--text-3);padding:14px 20px;border-top:1px solid var(--border);}
+
+@media(max-width:980px){
+  .form-grid,.pump-grid{grid-template-columns:1fr 1fr;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .search-pill{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="brand">
+    <div class="brand-mark">SF</div>
+    <div class="brand-text">
+      <div class="brand-eyebrow">SH FARI OPS</div>
+      <div class="brand-name">Station Control</div>
+    </div>
+  </div>
+
+  <div class="main-nav">
+    <div class="nav-btn active" data-group="dashboard" onclick="selectGroup('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Dashboard</div>
+    <div class="nav-btn" data-group="operations" onclick="selectGroup('operations')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="7" width="13" height="9" rx="1.5"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="5.5" cy="18" r="1.8"/><circle cx="17.5" cy="18" r="1.8"/></svg>Operations<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="nav-btn" data-group="finance" onclick="selectGroup('finance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg>Finance<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="nav-btn" data-group="reports" onclick="selectGroup('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>Reports</div>
+    <div class="nav-btn" data-group="audit" onclick="selectGroup('audit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Audit trail</div>
+    <div class="nav-btn" data-group="setup" onclick="selectGroup('setup')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.7 7.7 0 0 0-1.7-1L15 3h-6l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.3-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-1c.5.4 1.1.8 1.7 1L9 21h6l.4-2.6c.6-.2 1.2-.6 1.7-1l2.3 1 2-3.4z"/></svg>Setup</div>
+  </div>
+
+  <div class="topnav-right">
+    <div class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search records, refs…</div>
+    <div class="icon-btn"><span class="dot">4</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+    <div class="profile-chip"><div class="avatar">UM</div><span>Uthman</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+  </div>
+</div>
+
+<!-- SUB NAV (per group) -->
+<div class="subnav" id="subnav-operations">
+  <div class="sub-btn active" data-page="truck" onclick="selectPage('truck')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="7" width="13" height="9" rx="1.5"/><path d="M14 10h4l3 3v3h-7z"/></svg>Truck receiving</div>
+  <div class="sub-btn" data-page="dsr" onclick="selectPage('dsr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>DSR<span class="sub-badge">Open</span></div>
+  <div class="sub-btn" data-page="rtt" onclick="selectPage('rtt')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-5h5"/></svg>RTT</div>
+  <div class="sub-btn" data-page="stock" onclick="selectPage('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v9"/></svg>Stock &amp; dip<span class="sub-badge">2</span></div>
+  <div class="sub-btn" data-page="git" onclick="selectPage('git')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M2 4h3l2.4 12h11.2L21 8H6"/></svg>GIT</div>
+</div>
+
+<div class="subnav" id="subnav-finance">
+  <div class="sub-btn active" data-page="cash" onclick="selectPage('cash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg>Cash, POS &amp; bank</div>
+  <div class="sub-btn" data-page="debtors" onclick="selectPage('debtors')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>Debtors</div>
+  <div class="sub-btn" data-page="expenses" onclick="selectPage('expenses')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7v13h14V7M9 11v5M15 11v5"/></svg>Expenses</div>
+</div>
+
+<div class="subnav" id="subnav-setup">
+  <div class="sub-btn active" data-page="setup" onclick="selectPage('setup')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Stations</div>
+  <div class="sub-btn" data-page="setup" onclick="selectPage('setup')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/></svg>Users &amp; roles</div>
+  <div class="sub-btn" data-page="setup" onclick="selectPage('setup')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Narration list</div>
+</div>
+
+<div class="content">
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-head">
+      <div><div class="page-title">Dashboard</div><div class="page-desc">Consolidated across 3 stations — month to date, approved records only</div></div>
+      <div class="actions">
+        <button class="btn" onclick="toast('Exports as PDF')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Export</button>
+        <button class="btn btn-primary" onclick="toast('Opens station comparison drill-down')">Station comparison</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num">₦214.6M</div><div class="kpi-label">Sales MTD</div>
+        <div class="kpi-delta up">▲ 8.2%<span class="muted">vs last month</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num">₦68.3M</div><div class="kpi-label">Stock value on hand</div>
+        <div class="kpi-delta up" style="background:#F0F1F5;color:var(--text-2)">142,300 L<span class="muted">3 stations</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num">₦19.4M</div><div class="kpi-label">Outstanding debt</div>
+        <div class="kpi-delta down">▲ 3 accts<span class="muted">over 60 days</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num">₦11.8M</div><div class="kpi-label">Net profit MTD</div>
+        <div class="kpi-delta up">▲ 12.1%<span class="muted">vs last month</span></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered">
+          <div><div class="panel-title">Sales trend — last 8 weeks</div><div class="panel-sub">All stations combined, ₦ millions</div></div>
+          <select class="select"><option>Weekly</option></select>
+        </div>
+        <div class="area-chart">
+          <svg width="100%" viewBox="0 0 640 200">
+            <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5A524" stop-opacity="0.28"/><stop offset="100%" stop-color="#F5A524" stop-opacity="0"/></linearGradient></defs>
+            <g stroke="#EBECF2" stroke-width="1"><line x1="0" y1="20" x2="640" y2="20"/><line x1="0" y1="65" x2="640" y2="65"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="155" x2="640" y2="155"/></g>
+            <path d="M0,140 L92,120 L184,132 L276,95 L368,105 L460,70 L552,80 L640,42 L640,180 L0,180 Z" fill="url(#areaFill)"/>
+            <path d="M0,140 L92,120 L184,132 L276,95 L368,105 L460,70 L552,80 L640,42" fill="none" stroke="#F5A524" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="552" cy="80" r="5" fill="#fff" stroke="#F5A524" stroke-width="2.5"/>
+            <rect x="500" y="34" width="104" height="30" rx="8" fill="#1D2140"/>
+            <text x="552" y="53" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="700" font-family="Manrope">₦58.2M</text>
+          </svg>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">GIT status</div><div class="panel-sub">By outstanding volume</div></div></div>
+        <div class="donut-wrap">
+          <svg width="132" height="132" viewBox="0 0 132 132">
+            <circle cx="66" cy="66" r="50" fill="none" stroke="#F0F1F5" stroke-width="16"/>
+            <circle cx="66" cy="66" r="50" fill="none" stroke="#3E6DF6" stroke-width="16" stroke-dasharray="188 314" transform="rotate(-90 66 66)" stroke-linecap="round"/>
+            <circle cx="66" cy="66" r="50" fill="none" stroke="#F5A524" stroke-width="16" stroke-dasharray="63 314" stroke-dashoffset="-188" transform="rotate(-90 66 66)" stroke-linecap="round"/>
+            <circle cx="66" cy="66" r="50" fill="none" stroke="#1CA96B" stroke-width="16" stroke-dasharray="63 314" stroke-dashoffset="-251" transform="rotate(-90 66 66)" stroke-linecap="round"/>
+            <text x="66" y="62" text-anchor="middle" font-size="19" font-weight="800" fill="#171A2B" font-family="Manrope">81K</text>
+            <text x="66" y="78" text-anchor="middle" font-size="10.5" fill="#9498AB" font-family="Manrope">litres</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-row"><span class="legend-dot" style="background:#3E6DF6"></span>In transit<b>61,000L</b></div>
+            <div class="legend-row"><span class="legend-dot" style="background:#F5A524"></span>Arrived<b>20,000L</b></div>
+            <div class="legend-row"><span class="legend-dot" style="background:#1CA96B"></span>Discharging<b>20,000L</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered">
+          <div><div class="panel-title">Exceptions requiring attention</div><div class="panel-sub">Cash and stock variances beyond tolerance</div></div>
+          <span class="pill red">4 open</span>
+        </div>
+        <div>
+          <div class="exception-row"><div class="exc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div><div class="exc-body"><div class="exc-title">Cash variance ₦84,000 short — Ibadan Ring Road, 12 Sep</div><div class="exc-meta">Tolerance ₦20,000 · flagged by system</div></div><span class="pill red">Exceeded</span></div>
+          <div class="exception-row"><div class="exc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div><div class="exc-body"><div class="exc-title">Physical dip variance −620L PMS Tank 2 — Yola, 13 Sep</div><div class="exc-meta">System closing 38,220L vs dip 37,600L</div></div><span class="pill red">Exceeded</span></div>
+          <div class="exception-row"><div class="exc-ico amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div><div class="exc-body"><div class="exc-title">GIT overdue — Truck NGR-482-XY, 6 days in transit</div><div class="exc-meta">Order #GIT-1042 · Lagos Apapa · AGO 33,000L</div></div><span class="pill amber">Delayed</span></div>
+          <div class="exception-row"><div class="exc-ico amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div><div class="exc-body"><div class="exc-title">Debtor account past 90-day aging — Femi Transport Ltd</div><div class="exc-meta">Balance ₦2.4M · Ibadan Ring Road</div></div><span class="pill amber">Review</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">Sales by station — MTD</div></div></div>
+        <div style="padding:8px 0;">
+          <div class="bar-row"><div class="bar-label">Lagos – Apapa</div><div class="bar-track"><div class="bar-fill" style="width:88%;background:#F5A524"></div></div><div class="bar-val">₦92.4M</div></div>
+          <div class="bar-row"><div class="bar-label">Ibadan – Ring Rd</div><div class="bar-track"><div class="bar-fill" style="width:71%;background:#3E6DF6"></div></div><div class="bar-val">₦74.8M</div></div>
+          <div class="bar-row"><div class="bar-label">Yola</div><div class="bar-track"><div class="bar-fill" style="width:45%;background:#1CA96B"></div></div><div class="bar-val">₦47.4M</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head bordered"><div><div class="panel-title">Station-level summary</div><div class="panel-sub">August 2026 — last closed month</div></div></div>
+      <table>
+        <thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Trucks recv.</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Debt</th><th class="num">GIT</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">Lagos – Apapa</td><td class="num">318,400</td><td class="num">₦231.6M</td><td class="num">11</td><td class="num">₦9.8M</td><td class="num">₦14.2M</td><td class="num">₦6.1M</td><td class="num">33,000L</td></tr>
+          <tr><td class="strong">Ibadan – Ring Rd</td><td class="num">256,900</td><td class="num">₦186.4M</td><td class="num">9</td><td class="num">₦7.4M</td><td class="num">₦10.9M</td><td class="num">₦8.7M</td><td class="num">—</td></tr>
+          <tr><td class="strong">Yola</td><td class="num">162,300</td><td class="num">₦117.9M</td><td class="num">6</td><td class="num">₦5.1M</td><td class="num">₦6.6M</td><td class="num">₦4.6M</td><td class="num">28,000L</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ TRUCK RECEIVING ============ -->
+  <div class="page" id="page-truck">
+    <div class="page-head">
+      <div><div class="page-title">Truck receiving</div><div class="page-desc">A verified receipt updates stock automatically and closes any linked GIT order</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalTruck')">+ Record receipt</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select"><option>Month: September 2026</option></select>
+        <select class="select"><option>All stations</option></select>
+        <select class="select"><option>All products</option></select>
+        <div class="spacer"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" placeholder="Waybill / truck / ref"></div>
+      </div>
+      <table>
+        <thead><tr><th class="strong">Date</th><th>Truck</th><th>Product</th><th class="num">Qty (L)</th><th class="num">Order price</th><th class="num">Landing price</th><th>Waybill ref</th><th>Station</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">13 Sep 2026</td><td class="mono-tag">NGR-201-KJ</td><td>PMS</td><td class="num">33,000</td><td class="num">₦645.00</td><td class="num">₦652.40</td><td class="mono-tag">WB-88213</td><td>Lagos – Apapa</td><td><span class="pill green">Verified</span></td></tr>
+          <tr><td class="strong">12 Sep 2026</td><td class="mono-tag">NGR-482-XY</td><td>AGO</td><td class="num">33,000</td><td class="num">₦930.00</td><td class="num">₦941.10</td><td class="mono-tag">WB-88190</td><td>Lagos – Apapa</td><td><span class="pill amber">In transit</span></td></tr>
+          <tr><td class="strong">11 Sep 2026</td><td class="mono-tag">NGR-117-AB</td><td>PMS</td><td class="num">30,000</td><td class="num">₦643.50</td><td class="num">₦650.00</td><td class="mono-tag">WB-88177</td><td>Ibadan – Ring Rd</td><td><span class="pill green">Verified</span></td></tr>
+          <tr><td class="strong">09 Sep 2026</td><td class="mono-tag">NGR-305-QW</td><td>AGO</td><td class="num">28,000</td><td class="num">₦927.00</td><td class="num">₦935.60</td><td class="mono-tag">WB-88140</td><td>Yola</td><td><span class="pill green">Verified</span></td></tr>
+          <tr><td class="strong">07 Sep 2026</td><td class="mono-tag">NGR-064-LM</td><td>PMS</td><td class="num">33,000</td><td class="num">₦644.00</td><td class="num">₦651.20</td><td class="mono-tag">WB-88112</td><td>Ibadan – Ring Rd</td><td><span class="pill red">Disputed</span></td></tr>
+        </tbody>
+      </table>
+      <div class="footnote">Business rule: a verified receipt increases stock automatically and moves any linked GIT order to Discharged.</div>
+    </div>
+  </div>
+
+  <!-- ============ DSR ============ -->
+  <div class="page" id="page-dsr">
+    <div class="page-head">
+      <div><div class="page-title">Daily Sales Record</div><div class="page-desc">Sales are derived from controlled opening and closing readings — RTT is excluded automatically</div></div>
+      <div class="actions"><button class="btn" onclick="toast('Reopens the day — requires authorization, audit logged')">Reopen day</button><button class="btn btn-primary" onclick="toast('Locks the day — feeds monthly aggregation')">Close &amp; lock day</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select"><option>13 Sep 2026</option></select>
+        <select class="select"><option>Lagos – Apapa</option></select>
+        <span class="pill amber" style="margin-left:auto">Day open — not yet locked</span>
+      </div>
+      <div class="pump-grid">
+        <div class="pump-card"><div class="pump-card-head"><span class="pump-name">Pump 1 — PMS</span><span class="pill gray">Meter A</span></div><div class="pump-row"><span>Opening reading</span><span>184,220.4</span></div><div class="pump-row"><span>Closing reading</span><span>186,905.7</span></div><div class="pump-row"><span>RTT (excluded)</span><span>40.0</span></div><div class="pump-row sales"><span>Net sales (L)</span><span>2,645.3</span></div></div>
+        <div class="pump-card"><div class="pump-card-head"><span class="pump-name">Pump 2 — PMS</span><span class="pill gray">Meter B</span></div><div class="pump-row"><span>Opening reading</span><span>97,410.1</span></div><div class="pump-row"><span>Closing reading</span><span>99,880.6</span></div><div class="pump-row"><span>RTT (excluded)</span><span>0.0</span></div><div class="pump-row sales"><span>Net sales (L)</span><span>2,470.5</span></div></div>
+        <div class="pump-card"><div class="pump-card-head"><span class="pump-name">Pump 3 — AGO</span><span class="pill gray">Meter A</span></div><div class="pump-row"><span>Opening reading</span><span>52,110.0</span></div><div class="pump-row"><span>Closing reading</span><span>53,875.2</span></div><div class="pump-row"><span>RTT (excluded)</span><span>15.0</span></div><div class="pump-row sales"><span>Net sales (L)</span><span>1,750.2</span></div></div>
+      </div>
+      <table>
+        <thead><tr><th class="strong">Product</th><th class="num">Net sales (L)</th><th class="num">Avg. pump price</th><th class="num">Sales value</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">PMS</td><td class="num">5,115.8</td><td class="num">₦678.00</td><td class="num">₦3,468,512</td></tr>
+          <tr><td class="strong">AGO</td><td class="num">1,750.2</td><td class="num">₦975.00</td><td class="num">₦1,706,445</td></tr>
+          <tr><td class="strong">Total</td><td class="num">6,866.0</td><td class="num">—</td><td class="num">₦5,174,957</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ RTT ============ -->
+  <div class="page" id="page-rtt">
+    <div class="page-head">
+      <div><div class="page-title">Return to Tank (RTT)</div><div class="page-desc">Test / trial pump dispensing returned to tank — recorded separately, never counted as sales</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalRtt')">+ Log RTT</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row"><select class="select"><option>September 2026</option></select><select class="select"><option>All stations</option></select><div class="spacer"></div></div>
+      <table>
+        <thead><tr><th class="strong">Date</th><th>Station</th><th>Pump</th><th>Product</th><th class="num">Qty (L)</th><th>Reason</th><th>Operator</th><th>Ref</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">13 Sep 2026</td><td>Lagos – Apapa</td><td>Pump 1</td><td>PMS</td><td class="num">40.0</td><td>Meter calibration test</td><td>B. Adewale</td><td class="mono-tag">RTT-3391</td></tr>
+          <tr><td class="strong">13 Sep 2026</td><td>Lagos – Apapa</td><td>Pump 3</td><td>AGO</td><td class="num">15.0</td><td>Trial dispensing after seal change</td><td>B. Adewale</td><td class="mono-tag">RTT-3392</td></tr>
+          <tr><td class="strong">12 Sep 2026</td><td>Ibadan – Ring Rd</td><td>Pump 2</td><td>PMS</td><td class="num">22.0</td><td>Nozzle test</td><td>K. Musa</td><td class="mono-tag">RTT-3388</td></tr>
+        </tbody>
+      </table>
+      <div class="footnote">RTT increases tank stock per the configured tank-movement equation and is excluded from every sales report.</div>
+    </div>
+  </div>
+
+  <!-- ============ STOCK & DIP ============ -->
+  <div class="page" id="page-stock">
+    <div class="page-head">
+      <div><div class="page-title">Stock ledger &amp; physical dip</div><div class="page-desc">Continuous ledger — closing stock carries forward automatically as next-day opening stock</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalDip')">+ Record physical dip</button></div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Stock movement — PMS, Lagos Apapa, 13 Sep 2026</div></div>
+        <table>
+          <thead><tr><th class="strong">Component</th><th class="num">Litres</th></tr></thead>
+          <tbody>
+            <tr><td>Opening stock</td><td class="num">42,860.0</td></tr>
+            <tr><td>+ Truck receipts</td><td class="num">33,000.0</td></tr>
+            <tr><td>− Sales</td><td class="num">−5,115.8</td></tr>
+            <tr><td>+ RTT</td><td class="num">40.0</td></tr>
+            <tr><td>± Adjustments</td><td class="num">0.0</td></tr>
+            <tr><td class="strong">System closing stock</td><td class="num strong">70,784.2</td></tr>
+            <tr><td>Physical dip</td><td class="num">70,120.0</td></tr>
+            <tr><td class="strong">Variance</td><td class="num" style="color:var(--red)">−664.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Variance status by tank</div></div>
+        <div>
+          <div class="exception-row"><div class="exc-body"><div class="exc-title">PMS Tank 1 — Lagos Apapa</div><div class="exc-meta">Variance −664.2L · tolerance ±300L</div></div><span class="pill red">Exceeded</span></div>
+          <div class="exception-row"><div class="exc-body"><div class="exc-title">AGO Tank 1 — Lagos Apapa</div><div class="exc-meta">Variance +85.0L · tolerance ±300L</div></div><span class="pill green">Within tolerance</span></div>
+          <div class="exception-row"><div class="exc-body"><div class="exc-title">PMS Tank 2 — Yola</div><div class="exc-meta">Variance −620.0L · tolerance ±250L</div></div><span class="pill red">Exceeded</span></div>
+          <div class="exception-row"><div class="exc-body"><div class="exc-title">PMS Tank 1 — Ibadan Ring Rd</div><div class="exc-meta">Variance −140.0L · tolerance ±300L</div></div><span class="pill green">Within tolerance</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div><div class="panel-title">Full ledger — drill-down</div><div class="panel-sub">Every entry traces to its source receipt, sale, RTT or adjustment</div></div></div>
+      <table>
+        <thead><tr><th class="strong">Date</th><th>Product</th><th>Movement</th><th class="num">Qty (L)</th><th class="num">Running balance</th><th>Source ref</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">13 Sep</td><td>PMS</td><td>Truck receipt</td><td class="num">+33,000.0</td><td class="num">75,860.0</td><td class="mono-tag">WB-88213</td></tr>
+          <tr><td class="strong">13 Sep</td><td>PMS</td><td>Sale</td><td class="num">−5,115.8</td><td class="num">70,744.2</td><td class="mono-tag">DSR-0913</td></tr>
+          <tr><td class="strong">13 Sep</td><td>PMS</td><td>RTT</td><td class="num">+40.0</td><td class="num">70,784.2</td><td class="mono-tag">RTT-3391</td></tr>
+          <tr><td class="strong">13 Sep</td><td>PMS</td><td>Physical dip</td><td class="num">70,120.0</td><td class="num">−664.2 var.</td><td class="mono-tag">DIP-0913-A</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ GIT ============ -->
+  <div class="page" id="page-git">
+    <div class="page-head">
+      <div><div class="page-title">Goods in Transit</div><div class="page-desc">Order → truck → in transit → arrival → discharge, including multi-delivery</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalGit')">+ New GIT order</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div><div class="panel-title">GIT-1042 — AGO 33,000L</div><div class="panel-sub">Truck NGR-482-XY · destination Lagos – Apapa · order price ₦930.00/L</div></div><span class="pill amber">Delayed — 6 days in transit</span></div>
+      <div class="stage-track">
+        <div class="stage done"><div class="stage-line"></div><div class="stage-dot">✓</div><div class="stage-label">Order created</div></div>
+        <div class="stage done"><div class="stage-line"></div><div class="stage-dot">✓</div><div class="stage-label">Truck assigned</div></div>
+        <div class="stage current"><div class="stage-line"></div><div class="stage-dot">3</div><div class="stage-label">In transit</div></div>
+        <div class="stage"><div class="stage-line"></div><div class="stage-dot">4</div><div class="stage-label">Arrived</div></div>
+        <div class="stage"><div class="stage-line"></div><div class="stage-dot">5</div><div class="stage-label">Discharge</div></div>
+        <div class="stage"><div class="stage-dot">6</div><div class="stage-label">Completed</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="filter-row"><select class="select"><option>All statuses</option></select><select class="select"><option>All stations</option></select><div class="spacer"></div></div>
+      <table>
+        <thead><tr><th class="strong">Order</th><th>Truck</th><th>Product</th><th class="num">Qty (L)</th><th class="num">Order price</th><th>Destination</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong mono-tag">GIT-1042</td><td class="mono-tag">NGR-482-XY</td><td>AGO</td><td class="num">33,000</td><td class="num">₦930.00</td><td>Lagos – Apapa</td><td><span class="pill amber">In transit</span></td></tr>
+          <tr><td class="strong mono-tag">GIT-1041</td><td class="mono-tag">NGR-301-DC</td><td>PMS</td><td class="num">28,000</td><td class="num">₦644.00</td><td>Yola</td><td><span class="pill blue">Arrived</span></td></tr>
+          <tr><td class="strong mono-tag">GIT-1039</td><td class="mono-tag">NGR-201-KJ</td><td>PMS</td><td class="num">33,000</td><td class="num">₦645.00</td><td>Lagos – Apapa</td><td><span class="pill green">Completed</span></td></tr>
+          <tr><td class="strong mono-tag">GIT-1037</td><td class="mono-tag">NGR-117-AB</td><td>PMS</td><td class="num">30,000</td><td class="num">₦643.50</td><td>Ibadan – Ring Rd</td><td><span class="pill green">Completed</span></td></tr>
+          <tr><td class="strong mono-tag">GIT-1035</td><td class="mono-tag">NGR-559-TR</td><td>AGO</td><td class="num">15,000</td><td class="num">₦928.00</td><td>Ibadan – Ring Rd</td><td><span class="pill red">Exception — shortage 400L</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ CASH / POS / BANK ============ -->
+  <div class="page" id="page-cash">
+    <div class="page-head">
+      <div><div class="page-title">Cash, POS &amp; bank reconciliation</div><div class="page-desc">Expected cash vs POS collections, CIT, cash at hand and teller-wise bank deposits</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalDeposit')">+ Record deposit</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg></div></div><div class="kpi-value num">₦3,486,000</div><div class="kpi-label">Expected cash — 13 Sep</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div></div><div class="kpi-value num">₦3,200,000</div><div class="kpi-label">Deposited to bank</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div></div><div class="kpi-value num">₦202,000</div><div class="kpi-label">CIT (undeposited)</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div></div><div class="kpi-value num" style="color:var(--red)">−₦84,000</div><div class="kpi-label">Variance</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div class="panel-title">Teller-wise deposits — 13 Sep 2026</div></div>
+      <table>
+        <thead><tr><th class="strong">Time</th><th>Bank</th><th>Teller / ref</th><th class="num">Amount</th><th>Recorded by</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">09:40</td><td>GTBank</td><td class="mono-tag">TLR-88213</td><td class="num">₦1,800,000</td><td>C. Nwachukwu</td><td><span class="pill green">Confirmed</span></td></tr>
+          <tr><td class="strong">15:10</td><td>Zenith</td><td class="mono-tag">TLR-88214</td><td class="num">₦1,400,000</td><td>C. Nwachukwu</td><td><span class="pill green">Confirmed</span></td></tr>
+          <tr><td class="strong">—</td><td>—</td><td class="mono-tag">CIT carry-forward</td><td class="num">₦202,000</td><td>System</td><td><span class="pill gray">Carried forward</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div class="panel-title">Variance history — Lagos Apapa</div></div>
+      <table>
+        <thead><tr><th class="strong">Date</th><th class="num">Expected</th><th class="num">Deposited</th><th class="num">CIT</th><th class="num">Cash at hand</th><th class="num">Variance</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">13 Sep</td><td class="num">3,486,000</td><td class="num">3,200,000</td><td class="num">202,000</td><td class="num">0</td><td class="num" style="color:var(--red)">−84,000</td><td><span class="pill red">Exceeded</span></td></tr>
+          <tr><td class="strong">12 Sep</td><td class="num">3,102,400</td><td class="num">3,100,000</td><td class="num">0</td><td class="num">2,400</td><td class="num">0</td><td><span class="pill green">Reconciled</span></td></tr>
+          <tr><td class="strong">11 Sep</td><td class="num">2,988,900</td><td class="num">2,976,000</td><td class="num">0</td><td class="num">4,900</td><td class="num">−8,000</td><td><span class="pill amber">Within tolerance</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ DEBTORS ============ -->
+  <div class="page" id="page-debtors">
+    <div class="page-head">
+      <div><div class="page-title">Debtors</div><div class="page-desc">Customer balances, transaction history and aging</div></div>
+      <div class="actions"><button class="btn" onclick="toast('Opens repayment form')">Record repayment</button><button class="btn btn-primary" onclick="openModal('modalDebtor')">+ New debtor</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div></div><div class="kpi-value num">₦19.4M</div><div class="kpi-label">Total outstanding</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div><div class="kpi-value num">14</div><div class="kpi-label">Accounts</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div></div><div class="kpi-value num" style="color:#B4720B">₦6.1M</div><div class="kpi-label">Over 60 days</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div></div><div class="kpi-value num" style="color:var(--red)">₦2.4M</div><div class="kpi-label">Over 90 days</div></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" placeholder="Customer name"></div><select class="select"><option>All stations</option></select><div class="spacer"></div></div>
+      <table>
+        <thead><tr><th class="strong">Customer</th><th>Station</th><th class="num">Opening bal.</th><th class="num">Additions</th><th class="num">Payments</th><th class="num">Closing bal.</th><th>Aging</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">Femi Transport Ltd</td><td>Ibadan – Ring Rd</td><td class="num">2,100,000</td><td class="num">450,000</td><td class="num">150,000</td><td class="num">2,400,000</td><td><span class="pill red">90+ days</span></td></tr>
+          <tr><td class="strong">Coastal Fleet Services</td><td>Lagos – Apapa</td><td class="num">1,800,000</td><td class="num">300,000</td><td class="num">600,000</td><td class="num">1,500,000</td><td><span class="pill amber">60–90 days</span></td></tr>
+          <tr><td class="strong">Sahel Logistics</td><td>Yola</td><td class="num">980,000</td><td class="num">220,000</td><td class="num">1,000,000</td><td class="num">200,000</td><td><span class="pill green">Current</span></td></tr>
+          <tr><td class="strong">Adeyemi &amp; Sons</td><td>Lagos – Apapa</td><td class="num">640,000</td><td class="num">0</td><td class="num">640,000</td><td class="num">0</td><td><span class="pill gray">Settled</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ EXPENSES ============ -->
+  <div class="page" id="page-expenses">
+    <div class="page-head">
+      <div><div class="page-title">Expenses</div><div class="page-desc">Narration must be selected from the controlled list — free text is restricted by policy</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalExpense')">+ Log expense</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row"><select class="select"><option>September 2026</option></select><select class="select"><option>All stations</option></select><select class="select"><option>All narrations</option></select></div>
+      <table>
+        <thead><tr><th class="strong">Date</th><th>Station</th><th>Narration</th><th>Payee</th><th class="num">Amount</th><th>Approval</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">13 Sep</td><td>Lagos – Apapa</td><td>Generator diesel</td><td>Station float</td><td class="num">45,000</td><td><span class="pill green">Approved</span></td></tr>
+          <tr><td class="strong">12 Sep</td><td>Ibadan – Ring Rd</td><td>Pump maintenance</td><td>TechFix Nig. Ltd</td><td class="num">180,000</td><td><span class="pill amber">Pending — above threshold</span></td></tr>
+          <tr><td class="strong">11 Sep</td><td>Yola</td><td>Security wages</td><td>Station float</td><td class="num">95,000</td><td><span class="pill green">Approved</span></td></tr>
+          <tr><td class="strong">09 Sep</td><td>Lagos – Apapa</td><td>Waybill / logistics</td><td>Transporter</td><td class="num">62,000</td><td><span class="pill green">Approved</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ REPORTS ============ -->
+  <div class="page" id="page-reports">
+    <div class="page-head"><div><div class="page-title">Reports</div><div class="page-desc">Daily, monthly and management-level reports — exportable to Excel and PDF</div></div></div>
+    <div class="panel">
+      <div class="pill-tabs"><div class="pill-tab active">Daily</div><div class="pill-tab">Monthly</div><div class="pill-tab">Management</div></div>
+      <table>
+        <thead><tr><th class="strong">Report</th><th>Filters / drill-down</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="strong">Truck receive report</td><td>Date/month, station, product, truck</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Daily sales report</td><td>Date, station, pump/product</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">RTT report</td><td>Date/month, station, pump, product</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Stock ledger</td><td>Date range, station, product</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Physical dip variance</td><td>Date, station, tank/product</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Cash reconciliation</td><td>Date, station</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Debtor report</td><td>Customer, station</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">GIT report</td><td>Order, truck, product, destination</td><td><button class="btn" onclick="toast('Generates report')">Generate</button></td></tr>
+          <tr><td class="strong">Monthly management report</td><td>Sales, stock, expense, profit, debt, GIT</td><td><button class="btn btn-primary" onclick="toast('Generates report')">Generate</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ AUDIT ============ -->
+  <div class="page" id="page-audit">
+    <div class="page-head">
+      <div><div class="page-title">Audit trail</div><div class="page-desc">Every material amendment, approval, reopening and cancellation, with before/after values</div></div>
+      <div class="actions"><button class="btn" onclick="toast('Exports audit log')">Export</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select"><option>All actions</option></select>
+        <select class="select"><option>All users</option></select>
+        <div class="spacer"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" placeholder="Record ref"></div>
+      </div>
+      <table>
+        <thead><tr><th class="strong">Timestamp</th><th>User</th><th>Action</th><th>Record</th><th>Old value</th><th>New value</th></tr></thead>
+        <tbody>
+          <tr><td class="strong mono-tag">13 Sep 14:02</td><td>C. Nwachukwu</td><td><span class="pill amber">Reopened</span></td><td class="mono-tag">DSR-0912-LA</td><td>Locked</td><td>Open for correction</td></tr>
+          <tr><td class="strong mono-tag">13 Sep 11:40</td><td>System</td><td><span class="pill red">Flagged</span></td><td class="mono-tag">DIP-0913-A</td><td>—</td><td>Variance exceeded tolerance</td></tr>
+          <tr><td class="strong mono-tag">12 Sep 17:15</td><td>Uthman M.</td><td><span class="pill green">Approved</span></td><td class="mono-tag">EXP-4471</td><td>Pending</td><td>Approved</td></tr>
+          <tr><td class="strong mono-tag">12 Sep 09:05</td><td>B. Adewale</td><td><span class="pill blue">Created</span></td><td class="mono-tag">RTT-3388</td><td>—</td><td>22.0L logged</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ STATION SETUP ============ -->
+  <div class="page" id="page-setup">
+    <div class="page-head">
+      <div><div class="page-title">Station setup &amp; master data</div><div class="page-desc">Stations, users, products, prices and control parameters that every module depends on</div></div>
+      <div class="actions"><button class="btn btn-primary" onclick="openModal('modalStation')">+ Register station</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div class="panel-title">Stations</div></div>
+      <table>
+        <thead><tr><th class="strong">Station</th><th>Manager</th><th class="num">Pumps</th><th>Products</th><th class="num">Cash tolerance</th><th class="num">Stock tolerance</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="strong">Lagos – Apapa</td><td>C. Nwachukwu</td><td class="num">4</td><td>PMS, AGO</td><td class="num">₦20,000</td><td class="num">±300L</td><td><span class="pill green">Active</span></td></tr>
+          <tr><td class="strong">Ibadan – Ring Rd</td><td>K. Musa</td><td class="num">3</td><td>PMS, AGO</td><td class="num">₦20,000</td><td class="num">±300L</td><td><span class="pill green">Active</span></td></tr>
+          <tr><td class="strong">Yola</td><td>H. Bello</td><td class="num">3</td><td>PMS, AGO</td><td class="num">₦15,000</td><td class="num">±250L</td><td><span class="pill green">Active</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Users &amp; roles</div></div>
+        <table>
+          <thead><tr><th class="strong">Name</th><th>Role</th><th>Station</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="strong">Uthman M.</td><td>System Administrator</td><td>All</td><td><span class="pill green">Active</span></td></tr>
+            <tr><td class="strong">C. Nwachukwu</td><td>Cashier / Accounts Officer</td><td>Lagos – Apapa</td><td><span class="pill green">Active</span></td></tr>
+            <tr><td class="strong">B. Adewale</td><td>Pump / Sales Officer</td><td>Lagos – Apapa</td><td><span class="pill green">Active</span></td></tr>
+            <tr><td class="strong">K. Musa</td><td>Station Manager</td><td>Ibadan – Ring Rd</td><td><span class="pill green">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Expense narration list</div></div>
+        <table>
+          <thead><tr><th class="strong">Narration</th><th>Approval threshold</th></tr></thead>
+          <tbody>
+            <tr><td>Generator diesel</td><td class="num">No approval</td></tr>
+            <tr><td>Pump maintenance</td><td class="num">₦100,000</td></tr>
+            <tr><td>Security wages</td><td class="num">No approval</td></tr>
+            <tr><td>Waybill / logistics</td><td class="num">₦50,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="modalTruck"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record truck receipt</div><div class="modal-close" onclick="closeModal('modalTruck')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field"><label>Product</label><select class="select"><option>PMS</option><option>AGO</option></select></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" placeholder="33,000"></div>
+    <div class="field"><label>Order price</label><input class="input" placeholder="₦645.00"></div>
+    <div class="field"><label>Landing / waybill price</label><input class="input" placeholder="₦652.40"></div>
+    <div class="field"><label>Waybill reference</label><input class="input" placeholder="WB-88214"></div>
+    <div class="field"><label>Truck</label><input class="input" placeholder="NGR-201-KJ"></div>
+    <div class="field"><label>Linked GIT order</label><select class="select"><option>None</option><option>GIT-1042</option></select></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalTruck')">Cancel</button><button class="btn btn-primary" onclick="toast('Receipt recorded — stock updates on verification'); closeModal('modalTruck')">Save receipt</button></div>
+</div></div>
+
+<div class="overlay" id="modalRtt"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Log RTT</div><div class="modal-close" onclick="closeModal('modalRtt')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field"><label>Pump</label><select class="select"><option>Pump 1</option></select></div>
+    <div class="field"><label>Product</label><select class="select"><option>PMS</option><option>AGO</option></select></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" placeholder="40.0"></div>
+    <div class="field" style="grid-column:span 2;"><label>Reason / narration</label><input class="input" placeholder="Meter calibration test"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalRtt')">Cancel</button><button class="btn btn-primary" onclick="toast('RTT logged — excluded from sales'); closeModal('modalRtt')">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalDip"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record physical dip</div><div class="modal-close" onclick="closeModal('modalDip')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field"><label>Tank / product</label><select class="select"><option>PMS Tank 1</option></select></div>
+    <div class="field"><label>System closing stock</label><input class="input" readonly value="70,784.2"></div>
+    <div class="field"><label>Physical dip reading</label><input class="input" placeholder="70,120.0"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalDip')">Cancel</button><button class="btn btn-primary" onclick="toast('Dip recorded — variance calculated automatically'); closeModal('modalDip')">Save dip</button></div>
+</div></div>
+
+<div class="overlay" id="modalGit"><div class="modal">
+  <div class="modal-head"><div class="modal-title">New GIT order</div><div class="modal-close" onclick="closeModal('modalGit')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Product</label><select class="select"><option>PMS</option><option>AGO</option></select></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" placeholder="33,000"></div>
+    <div class="field"><label>Order price</label><input class="input" placeholder="₦930.00"></div>
+    <div class="field"><label>Truck</label><input class="input" placeholder="NGR-482-XY"></div>
+    <div class="field"><label>Destination station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field"><label>Multi-delivery?</label><select class="select"><option>No</option><option>Yes</option></select></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalGit')">Cancel</button><button class="btn btn-primary" onclick="toast('GIT order created'); closeModal('modalGit')">Create order</button></div>
+</div></div>
+
+<div class="overlay" id="modalDeposit"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record bank deposit</div><div class="modal-close" onclick="closeModal('modalDeposit')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Bank</label><select class="select"><option>GTBank</option><option>Zenith</option></select></div>
+    <div class="field"><label>Teller / deposit ref</label><input class="input" placeholder="TLR-88215"></div>
+    <div class="field" style="grid-column:span 2;"><label>Amount</label><input class="input" placeholder="₦1,800,000"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalDeposit')">Cancel</button><button class="btn btn-primary" onclick="toast('Deposit recorded'); closeModal('modalDeposit')">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalDebtor"><div class="modal">
+  <div class="modal-head"><div class="modal-title">New debtor</div><div class="modal-close" onclick="closeModal('modalDebtor')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Customer name</label><input class="input" placeholder="Sahel Logistics"></div>
+    <div class="field"><label>Station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field" style="grid-column:span 2;"><label>Opening balance</label><input class="input" placeholder="₦0"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalDebtor')">Cancel</button><button class="btn btn-primary" onclick="toast('Debtor registered'); closeModal('modalDebtor')">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalExpense"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Log expense</div><div class="modal-close" onclick="closeModal('modalExpense')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select"><option>Lagos – Apapa</option></select></div>
+    <div class="field"><label>Narration</label><select class="select"><option>Generator diesel</option><option>Pump maintenance</option></select></div>
+    <div class="field"><label>Amount</label><input class="input" placeholder="₦45,000"></div>
+    <div class="field"><label>Payee</label><input class="input" placeholder="Station float"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalExpense')">Cancel</button><button class="btn btn-primary" onclick="toast('Expense logged'); closeModal('modalExpense')">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalStation"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Register station</div><div class="modal-close" onclick="closeModal('modalStation')">&times;</div></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label>Station name</label><input class="input" placeholder="Abuja – Wuse"></div>
+    <div class="field"><label>Manager</label><input class="input" placeholder="Assign later"></div>
+    <div class="field"><label>Cash tolerance</label><input class="input" placeholder="₦20,000"></div>
+    <div class="field"><label>Stock tolerance</label><input class="input" placeholder="±300L"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal('modalStation')">Cancel</button><button class="btn btn-primary" onclick="toast('Station registered'); closeModal('modalStation')">Save</button></div>
+</div></div>
+
+<div id="toastHost" style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;flex-direction:column;gap:8px;"></div>
+
+<script>
+const groups = {
+  dashboard: { page:'dashboard', hasSub:false },
+  operations:{ hasSub:true, defaultPage:'truck' },
+  finance:   { hasSub:true, defaultPage:'cash' },
+  reports:   { page:'reports', hasSub:false },
+  audit:     { page:'audit', hasSub:false },
+  setup:     { page:'setup', hasSub:false }
+};
+const pageTitleTop = { dashboard:'dashboard', reports:'reports', audit:'audit', setup:'setup' };
+
+function selectGroup(g){
+  document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('active'));
+  document.querySelector('.nav-btn[data-group="'+g+'"]').classList.add('active');
+  document.querySelectorAll('.subnav').forEach(s=>s.classList.remove('show'));
+  const cfg = groups[g];
+  if(cfg.hasSub){
+    const sub = document.getElementById('subnav-'+g);
+    sub.classList.add('show');
+    const firstBtn = sub.querySelector('.sub-btn');
+    sub.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+    firstBtn.classList.add('active');
+    showPage(cfg.defaultPage);
+  } else {
+    showPage(cfg.page);
+  }
+}
+function selectPage(p){
+  const activeGroup = document.querySelector('.nav-btn.active').dataset.group;
+  const sub = document.getElementById('subnav-'+activeGroup);
+  if(sub){
+    sub.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  showPage(p);
+}
+function showPage(p){
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  window.scrollTo(0,0);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(o=>{ o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('show'); }); });
+function toast(msg){
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  el.style.cssText = 'background:#1D2140;border:1px solid #2A2F55;color:#fff;padding:12px 16px;border-radius:12px;font-size:12.5px;font-weight:600;max-width:300px;box-shadow:0 10px 30px -8px rgba(23,26,43,.4);';
+  el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
+}
+document.querySelectorAll('.pill-tab').forEach(t=>{
+  t.addEventListener('click', ()=>{ t.parentElement.querySelectorAll('.pill-tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); });
+});
+</script>
+</body>
+</html>
