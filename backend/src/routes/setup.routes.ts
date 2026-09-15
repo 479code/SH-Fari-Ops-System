@@ -1,7 +1,6 @@
 /** Setup API: stations, tanks, pumps, products & prices, narrations, banks, users, roles and settings. */
 import { Hono } from "hono";
 import { requireAnyPermission, requireAuth, requirePermission } from "../middleware/auth.ts";
-import { issuePasswordReset } from "../services/auth.service.ts";
 import * as master from "../services/masterdata.service.ts";
 import * as rolesService from "../services/roles.service.ts";
 import { getSettings, settingsUpdateSchema, updateSettings } from "../services/settings.service.ts";
@@ -135,7 +134,7 @@ userRoutes.delete("/:id", requirePermission("users.manage"), async (c) => {
 });
 userRoutes.post("/:id/unlock", requirePermission("users.manage"), async (c) => ok(c, await usersService.unlockUser(c.get("actor"), readId(c)), "Account unlocked."));
 userRoutes.post("/:id/password-reset", requirePermission("users.manage"), async (c) => {
-  const result = await issuePasswordReset(c.get("actor"), readId(c));
+  const result = await usersService.issueUserPasswordReset(c.get("actor"), readId(c));
   return created(c, result, "Password reset link issued. Share it with the user securely — it is shown only once.");
 });
 

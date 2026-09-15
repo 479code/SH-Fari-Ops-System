@@ -12,8 +12,11 @@ const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
 function clientIp(c: Context<AppEnv>): string | null {
   if (env.TRUST_PROXY) {
-    const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
-    if (forwarded) return forwarded.slice(0, 64);
+    // The trusted proxy appends the address it saw; entries to the left came
+    // from the client and could be forged to dodge per-IP rate limits.
+    const hops = (c.req.header("x-forwarded-for") ?? "").split(",").map((h) => h.trim()).filter(Boolean);
+    const nearest = hops[hops.length - 1];
+    if (nearest) return nearest.slice(0, 64);
   }
   try {
     return getConnInfo(c).remote.address ?? null;

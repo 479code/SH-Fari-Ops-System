@@ -138,7 +138,7 @@ async function transactionDialog({ type, debtor }) {
   let choices = [];
   if (!debtor) {
     try {
-      const res = await api.get("/debtors", { stationId: $("#debtStation").value, status: "active", hasBalance: repayment ? "true" : undefined, sortBy: "name", sortOrder: "asc", limit: 100 });
+      const res = await api.get("/debtors", { stationId: $("#debtStation").value, status: repayment ? undefined : "active", hasBalance: repayment ? "true" : undefined, sortBy: "name", sortOrder: "asc", limit: 100 });
       choices = res.data;
     } catch (err) {
       toastError(err);

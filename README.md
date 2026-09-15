@@ -207,8 +207,10 @@ Permissions are `<module>.<action>` codes, defined in `backend/src/auth/permissi
 
 Built-in controls:
 - An expense cannot be approved by the person who logged it.
-- Only the most recent DSR day can be reopened, and a reason is required.
+- Only the most recent DSR day can be reopened, and a reason is required. A day opened by mistake (never closed) can be discarded so the previous day can be corrected.
 - At least one active user must always be able to manage users and roles.
+- No privilege escalation: nobody can assign or edit a role, or edit, suspend, delete or issue a reset link for an account, that carries access they do not hold themselves.
+- Background polling (navigation badges) does not count as activity, so idle sessions still expire after `SESSION_IDLE_MINUTES`.
 
 ## 14. Troubleshooting
 

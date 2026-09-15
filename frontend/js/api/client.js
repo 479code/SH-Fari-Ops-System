@@ -5,6 +5,8 @@
  * - Sends JSON, includes the session cookie, times out slow requests.
  * - Normalises failures into ApiError { status, code, message, fields }.
  * - Broadcasts `auth:expired` on 401 so the shell can return to sign-in.
+ * - `background: true` marks polling requests so they do not count as user
+ *   activity for the server's idle-session timeout.
  */
 
 const BASE = (document.querySelector('meta[name="api-base"]')?.getAttribute("content") || "/api/v1").replace(/\/$/, "");
@@ -19,6 +21,7 @@ const FALLBACK_MESSAGES = {
   403: "You do not have permission to perform this action.",
   404: "The requested record was not found.",
   409: "This conflicts with the current state of the record.",
+  413: "The request is too large.",
   422: "Some fields are invalid. Please review and try again.",
   429: "Too many requests. Please wait a moment and try again.",
   500: "Something went wrong on the server. Please try again.",
@@ -46,7 +49,11 @@ function buildUrl(path, query) {
   return url;
 }
 
-async function request(method, path, { body, query, timeout = DEFAULT_TIMEOUT_MS, raw = false } = {}) {
+async function request(method, path, { body, query, timeout = DEFAULT_TIMEOUT_MS, raw = false, background = false } = {}) {
+  const headers = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (background) headers["X-Background-Request"] = "1";
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   let response;
@@ -54,7 +61,7 @@ async function request(method, path, { body, query, timeout = DEFAULT_TIMEOUT_MS
     response = await fetch(buildUrl(path, query), {
       method,
       credentials: CREDENTIALS,
-      headers: body === undefined ? { Accept: "application/json" } : { Accept: "application/json", "Content-Type": "application/json" },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
@@ -110,7 +117,7 @@ async function download(path, query, fallbackName) {
 }
 
 export const api = {
-  get: (path, query) => request("GET", path, { query }),
+  get: (path, query, options = {}) => request("GET", path, { ...options, query }),
   post: (path, body = {}) => request("POST", path, { body }),
   put: (path, body = {}) => request("PUT", path, { body }),
   patch: (path, body = {}) => request("PATCH", path, { body }),

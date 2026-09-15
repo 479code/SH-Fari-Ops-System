@@ -20,10 +20,12 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const token = getCookie(c, SESSION_COOKIE);
   if (!token) throw new AppError("UNAUTHORIZED", "Please sign in to continue.");
 
-  const actor = await resolveSession(token, {
-    ip: c.get("clientIp"),
-    userAgent: c.req.header("user-agent") ?? null,
-  });
+  const actor = await resolveSession(
+    token,
+    { ip: c.get("clientIp"), userAgent: c.req.header("user-agent") ?? null },
+    // Background polling must not keep an unattended session alive.
+    { touch: c.req.header("x-background-request") !== "1" },
+  );
   if (!actor) throw new AppError("UNAUTHORIZED", "Your session has expired. Please sign in again.");
 
   if (actor.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.has(c.req.path)) {

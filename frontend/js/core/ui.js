@@ -7,6 +7,20 @@
  */
 import { $, $$, html, raw, setHtml } from "./dom.js";
 
+const FOCUSABLE = "input:not([readonly]):not([type=hidden]):not([disabled]), select:not([disabled]), textarea";
+
+/**
+ * Focuses the first field shortly after a dialog opens — unless the user (or an
+ * automated tool) has already put focus inside it, so typing is never redirected
+ * into another field mid-word.
+ */
+function focusFirst(root) {
+  setTimeout(() => {
+    if (root.contains(document.activeElement)) return;
+    root.querySelector(FOCUSABLE)?.focus();
+  }, 30);
+}
+
 /* Toasts ------------------------------------------------------------------ */
 
 export function toast(message, type = "info") {
@@ -39,8 +53,7 @@ export function openModal(id) {
   if (!overlay) return;
   clearFieldErrors(overlay);
   overlay.classList.add("show");
-  const first = overlay.querySelector("input:not([readonly]):not([type=hidden]):not([disabled]), select:not([disabled]), textarea");
-  setTimeout(() => first?.focus(), 30);
+  focusFirst(overlay);
 }
 
 export function closeModal(id) {
@@ -212,7 +225,7 @@ export function formModal({ title, intro, fields = [], submitLabel = "Save", onS
   };
   overlay.classList.add("show");
   onRender?.(form, close);
-  setTimeout(() => form.querySelector("input:not([readonly]):not([type=hidden]):not([disabled]), select:not([disabled]), textarea")?.focus(), 30);
+  focusFirst(form);
   return { form, close };
 }
 

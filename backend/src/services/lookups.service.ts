@@ -17,7 +17,8 @@ export async function getLookups(actor: Actor) {
     db
       .select({ id: stations.id, code: stations.code, name: stations.name, cashTolerance: stations.cashTolerance, stockTolerance: stations.stockTolerance })
       .from(stations)
-      .where(and(eq(stations.status, "active"), scoped(stations.id)))
+      // A station-bound user always gets their own station, even once it is deactivated.
+      .where(actor.stationId !== null ? eq(stations.id, actor.stationId) : eq(stations.status, "active"))
       .orderBy(asc(stations.name)),
     db.select({ id: products.id, code: products.code, name: products.name }).from(products).where(eq(products.status, "active")).orderBy(asc(products.code)),
     db

@@ -113,6 +113,10 @@ dsrRoutes.post("/:id/reopen", requirePermission("dsr.reopen"), async (c) => {
   const { reason } = await readJson(c, reasonSchema);
   return ok(c, await dsr.reopenDay(c.get("actor"), readId(c), reason), "Day reopened for correction.");
 });
+dsrRoutes.post("/:id/discard", requirePermission("dsr.reopen"), async (c) => {
+  const { reason } = await readJson(c, reasonSchema);
+  return ok(c, await dsr.discardDay(c.get("actor"), readId(c), reason), "Business day discarded.");
+});
 
 /* RTT ------------------------------------------------------------------------------- */
 

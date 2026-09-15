@@ -10,19 +10,28 @@ import { settings } from "../db/schema/index.ts";
 import type { Actor } from "../types.ts";
 import { recordAudit } from "./audit.service.ts";
 
-export const settingsSchema = z.object({
+const settingsShape = {
   /** Block DSR closes / adjustments that would take a tank below zero. */
-  allowNegativeStock: z.boolean().default(false),
+  allowNegativeStock: z.boolean(),
   /** Days in transit after which a GIT order is flagged as delayed. */
-  gitDelayDays: z.number().int().min(1).max(60).default(5),
+  gitDelayDays: z.number().int().min(1).max(60),
   /** Discharge shortfall (litres) tolerated before a GIT delivery is flagged. */
-  gitShortageToleranceLitres: z.number().min(0).max(100_000).default(100),
+  gitShortageToleranceLitres: z.number().min(0).max(100_000),
   /** Age (days) of the oldest unpaid debt at which a debtor is flagged. */
-  debtorAgingAlertDays: z.number().int().min(1).max(365).default(90),
+  debtorAgingAlertDays: z.number().int().min(1).max(365),
+};
+
+export const settingsSchema = z.object({
+  allowNegativeStock: settingsShape.allowNegativeStock.default(false),
+  gitDelayDays: settingsShape.gitDelayDays.default(5),
+  gitShortageToleranceLitres: settingsShape.gitShortageToleranceLitres.default(100),
+  debtorAgingAlertDays: settingsShape.debtorAgingAlertDays.default(90),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
-export const settingsUpdateSchema = settingsSchema.partial().strict();
+// Built from the default-free shape: `.partial()` over defaulted fields would
+// fill in every key the caller did not send and silently reset those settings.
+export const settingsUpdateSchema = z.object(settingsShape).partial().strict();
 
 export async function getSettings(executor: Executor = db): Promise<Settings> {
   const rows = await executor.select().from(settings);

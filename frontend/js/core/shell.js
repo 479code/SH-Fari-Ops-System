@@ -32,8 +32,13 @@ export function setProfile(user) {
 
 export async function refreshBadges() {
   try {
-    const { data } = await api.get("/dashboard/badges");
+    const { data } = await api.get("/dashboard/badges", undefined, { background: true });
     state.badges = data;
+    // Keeps default dates right when a tab stays open past midnight.
+    if (state.lookups && data.today) {
+      state.lookups.today = data.today;
+      state.lookups.currentMonth = data.today.slice(0, 7);
+    }
     const bell = $("#bellCount");
     bell.hidden = !can("exceptions.view") || data.openExceptions === 0;
     bell.textContent = data.openExceptions > 99 ? "99+" : String(data.openExceptions);

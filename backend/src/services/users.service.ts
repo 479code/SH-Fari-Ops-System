@@ -2,19 +2,22 @@
  * users.service.ts — user administration.
  *
  * New users receive an administrator-set temporary password and must change it
- * at first sign-in. Guards prevent an administrator from locking everyone out:
- * at least one active user must always hold users.manage and roles.manage.
+ * at first sign-in. Guards:
+ *  - at least one active user must always hold users.manage and roles.manage;
+ *  - nobody can grant, or act on an account holding, access they lack themselves
+ *    (so a delegated user administrator cannot escalate to System Administrator).
  */
 import { and, count, eq, inArray, isNull, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { hashPassword } from "../auth/password.ts";
-import { db, selectRows, type Tx } from "../db/client.ts";
-import { roles, sessions, stations, userRoles, users } from "../db/schema/index.ts";
+import { db, selectRows, type Executor, type Tx } from "../db/client.ts";
+import { permissions, rolePermissions, roles, sessions, stations, userRoles, users } from "../db/schema/index.ts";
 import type { Actor } from "../types.ts";
 import { AppError, conflict, notFound } from "../utils/errors.ts";
 import { paginationMeta } from "../utils/http.ts";
 import { num } from "../utils/numbers.ts";
 import { likeContains } from "../utils/sql.ts";
 import { recordAudit } from "./audit.service.ts";
+import { issuePasswordReset } from "./auth.service.ts";
 
 /** Throws (rolling back the transaction) if no active user could still administer access. */
 export async function assertAdministratorsRemain(tx: Tx): Promise<void> {
@@ -33,6 +36,29 @@ export async function assertAdministratorsRemain(tx: Tx): Promise<void> {
     throw conflict("This change would leave no active user able to manage users and roles.");
   }
 }
+
+/** Permission codes granted by a set of roles. */
+export async function permissionsOfRoles(ex: Executor, roleIds: number[]): Promise<string[]> {
+  if (roleIds.length === 0) return [];
+  const rows = await ex
+    .selectDistinct({ code: permissions.code })
+    .from(rolePermissions)
+    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+    .where(inArray(rolePermissions.roleId, roleIds));
+  return rows.map((r) => r.code);
+}
+
+async function permissionsOfUser(ex: Executor, userId: number): Promise<string[]> {
+  const roleRows = await ex.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, userId));
+  return permissionsOfRoles(ex, roleRows.map((r) => r.roleId));
+}
+
+/** Rejects when `codes` includes a permission the actor does not hold. */
+export function assertWithinActorAccess(actor: Actor, codes: string[], message: string): void {
+  if (codes.some((code) => !actor.permissions.has(code))) throw new AppError("FORBIDDEN", message);
+}
+
+const OUTRANKED = "You cannot manage an account that has access you do not have.";
 
 async function roleNames(tx: Tx, roleIds: number[]) {
   if (roleIds.length === 0) return [];
@@ -124,6 +150,7 @@ export async function createUser(
     }
     await assertStation(tx, input.stationId);
     const names = await roleNames(tx, input.roleIds);
+    assertWithinActorAccess(actor, await permissionsOfRoles(tx, input.roleIds), "You cannot assign a role that grants access you do not have.");
 
     const [inserted] = await tx
       .insert(users)
@@ -163,6 +190,7 @@ export async function updateUser(
     const [user] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
     if (!user) throw notFound("User");
     if (id === actor.id && input.status === "suspended") throw new AppError("FORBIDDEN", "You cannot suspend your own account.");
+    assertWithinActorAccess(actor, await permissionsOfUser(tx, id), OUTRANKED);
     if (input.email && input.email !== user.email) {
       const [byEmail] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, input.email), ne(users.id, id)));
       if (byEmail) throw new AppError("CONFLICT", "That email address is already in use.", { fields: { email: "Email already in use." } });
@@ -185,6 +213,7 @@ export async function updateUser(
         rolesChanged = true;
         oldValue.roles = await roleNames(tx, before);
         newValue.roles = await roleNames(tx, after);
+        assertWithinActorAccess(actor, await permissionsOfRoles(tx, after), "You cannot assign a role that grants access you do not have.");
         await tx.delete(userRoles).where(eq(userRoles.userId, id));
         await tx.insert(userRoles).values(after.map((roleId) => ({ userId: id, roleId })));
       }
@@ -213,6 +242,7 @@ export async function deleteUser(actor: Actor, id: number) {
     const [user] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
     if (!user) throw notFound("User");
     if (id === actor.id) throw new AppError("FORBIDDEN", "You cannot delete your own account.");
+    assertWithinActorAccess(actor, await permissionsOfUser(tx, id), OUTRANKED);
     const now = new Date();
     await tx.update(users).set({ deletedAt: now, status: "suspended" }).where(eq(users.id, id));
     await tx.update(sessions).set({ revokedAt: now }).where(and(eq(sessions.userId, id), isNull(sessions.revokedAt)));
@@ -244,4 +274,12 @@ export async function unlockUser(actor: Actor, id: number) {
     });
   });
   return getUser(id);
+}
+
+/** A reset link hands over the account, so the same no-escalation rule applies. */
+export async function issueUserPasswordReset(actor: Actor, id: number) {
+  const [user] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).limit(1);
+  if (!user) throw notFound("User");
+  assertWithinActorAccess(actor, await permissionsOfUser(db, id), OUTRANKED);
+  return issuePasswordReset(actor, id);
 }

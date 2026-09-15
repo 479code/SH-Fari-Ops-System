@@ -430,6 +430,16 @@ export async function closeDay(actor: Actor, dayId: number) {
       .from(rttEntries)
       .where(and(eq(rttEntries.stationId, day.stationId), eq(rttEntries.businessDate, day.businessDate), eq(rttEntries.status, "active")));
 
+    // RTT on a pump outside the day (e.g. deactivated before opening) would never be posted.
+    const dayPumps = new Set(rows.map((r) => r.reading.pumpId));
+    const orphanRtt = rttRows.filter((r) => !dayPumps.has(r.pumpId));
+    if (orphanRtt.length > 0) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        `RTT ${orphanRtt.map((r) => r.ref).join(", ")} is logged on a pump that is not part of this day. Cancel it or reactivate the pump first.`,
+      );
+    }
+
     const problems: string[] = [];
     const ledger: LedgerInsert[] = [];
     let totalNet = 0;
@@ -501,7 +511,11 @@ export async function reopenDay(actor: Actor, dayId: number, reason: string) {
       .from(dsrDays)
       .where(and(eq(dsrDays.stationId, day.stationId), gt(dsrDays.businessDate, day.businessDate)))
       .limit(1);
-    if (later) throw conflict(`Only the most recent business day can be reopened; ${later.businessDate} already exists for this station.`);
+    if (later) {
+      throw conflict(
+        `Only the most recent business day can be reopened; ${later.businessDate} already exists for this station. If that day was opened by mistake, discard it first.`,
+      );
+    }
 
     const [cash] = await tx
       .select({ status: cashPositions.status })
@@ -548,6 +562,45 @@ export async function reopenDay(actor: Actor, dayId: number, reason: string) {
       stationId: day.stationId,
       oldValue: { status: "Locked" },
       newValue: { status: "Open for correction", reason },
+    });
+    return day;
+  });
+  return getDay(actor, day.stationId, day.businessDate);
+}
+
+/**
+ * Discards a business day opened by mistake. Only the latest day that has never
+ * been closed qualifies: its readings were never posted, so nothing downstream
+ * depends on it. RTT entries are independent records and are kept.
+ */
+export async function discardDay(actor: Actor, dayId: number, reason: string) {
+  const day = await db.transaction(async (tx) => {
+    const day = await lockDay(actor, tx, dayId);
+    if (day.status !== "open") throw conflict(`${day.ref} is closed — reopen it instead.`);
+    if (day.reopenCount > 0) {
+      throw conflict(`${day.ref} has been closed before, so its sales were already reported. Correct it and close it again instead of discarding it.`);
+    }
+    const [later] = await tx
+      .select({ businessDate: dsrDays.businessDate })
+      .from(dsrDays)
+      .where(and(eq(dsrDays.stationId, day.stationId), gt(dsrDays.businessDate, day.businessDate)))
+      .limit(1);
+    if (later) throw conflict(`Only the most recent business day can be discarded; ${later.businessDate} already exists for this station.`);
+
+    const readings = await tx
+      .select({ pumpId: dsrReadings.pumpId, openingReading: dsrReadings.openingReading, closingReading: dsrReadings.closingReading })
+      .from(dsrReadings)
+      .where(eq(dsrReadings.dsrDayId, day.id));
+    await tx.delete(dsrDays).where(eq(dsrDays.id, day.id)); // readings cascade
+
+    await recordAudit(tx, actor, {
+      action: "deleted",
+      resource: "dsr_day",
+      resourceId: day.id,
+      recordRef: day.ref,
+      stationId: day.stationId,
+      oldValue: { status: "Open", businessDate: day.businessDate, readings },
+      newValue: { discarded: true, reason },
     });
     return day;
   });

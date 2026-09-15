@@ -131,6 +131,12 @@ function bindAuthForms() {
       try {
         const res = await api.post("/auth/login", { username: values.username ?? "", password: values.password ?? "" });
         form.reset();
+        // Page modules were initialised for the previous session (station scope,
+        // hidden controls); start clean instead of re-using them.
+        if (started) {
+          window.location.reload();
+          return;
+        }
         await enterApp(res.data);
       } catch (err) {
         showFieldErrors(form, err);
@@ -215,6 +221,7 @@ function bindModalsAndActions() {
 window.addEventListener("auth:expired", () => {
   if (!state.user) return;
   state.user = null;
+  clearInterval(badgeTimer);
   $$(".overlay.show").forEach((o) => o.classList.remove("show"));
   showLogin("Your session has expired. Please sign in again.");
 });

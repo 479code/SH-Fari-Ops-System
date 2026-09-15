@@ -55,6 +55,7 @@ function render() {
   show($("#dsrSave"), day.status === "open");
   show($("#dsrClose"), day.status === "open");
   show($("#dsrReopen"), day.status === "closed");
+  show($("#dsrDiscard"), day.status === "open" && day.day?.reopenCount === 0);
 
   const d = day.day;
   let meta;
@@ -191,6 +192,23 @@ export default {
         submitLabel: "Reopen day",
         onSubmit: async (values, { close }) => {
           const res = await api.post(`/dsr/${day.day.id}/reopen`, { reason: values.reason ?? "" });
+          close();
+          day = res.data;
+          render();
+          toast(res.message, "success");
+          refreshBadges();
+        },
+      }),
+    );
+
+    $("#dsrDiscard").addEventListener("click", () =>
+      reasonModal({
+        title: `Discard ${day.day.ref}`,
+        intro:
+          "Use this only for a day opened by mistake. Its readings were never posted, so the day is removed; the reason and the readings are kept in the audit trail. RTT entries for the date are kept.",
+        submitLabel: "Discard day",
+        onSubmit: async (values, { close }) => {
+          const res = await api.post(`/dsr/${day.day.id}/discard`, { reason: values.reason ?? "" });
           close();
           day = res.data;
           render();

@@ -231,5 +231,6 @@ export async function getBadges(actor: Actor) {
     stockExceptions: stockExceptions[0]?.n ?? 0,
     openExceptions: openExceptions[0]?.n ?? 0,
     pendingExpenses: pendingExpenses[0]?.n ?? 0,
+    today: today(),
   };
 }

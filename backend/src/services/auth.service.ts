@@ -184,7 +184,7 @@ export async function login(
 }
 
 /** Resolves a cookie token to an Actor, enforcing absolute and idle expiry. */
-export async function resolveSession(token: string, client: ClientInfo): Promise<Actor | null> {
+export async function resolveSession(token: string, client: ClientInfo, options: { touch?: boolean } = {}): Promise<Actor | null> {
   if (token.length < 20 || token.length > 128) return null;
   const sessionId = hashSessionToken(token);
   const [row] = await db
@@ -214,8 +214,9 @@ export async function resolveSession(token: string, client: ClientInfo): Promise
     return null;
   }
 
-  // Touch at most once a minute to keep writes off the hot path.
-  if (now - row.lastSeenAt.getTime() > 60_000) {
+  // Touch at most once a minute to keep writes off the hot path. Background
+  // polling (options.touch === false) must not count as user activity.
+  if (options.touch !== false && now - row.lastSeenAt.getTime() > 60_000) {
     await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, sessionId));
   }
 

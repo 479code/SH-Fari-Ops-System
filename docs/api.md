@@ -114,6 +114,7 @@ Numbers accept plain numbers or strings with thousands separators/currency symbo
 | PUT | `/dsr/:id/readings` | `dsr.record` | `{ readings[{ pumpId, closingReading, openingReading? }] }` | Field errors use `readings.N.closingReading` |
 | POST | `/dsr/:id/close` | `dsr.close` | `{}` | Computes net sales (RTT excluded), snapshots price and cost, posts dispensing and RTT to the ledger, locks the day |
 | POST | `/dsr/:id/reopen` | `dsr.reopen` | `{ reason }` | Latest day only; voids postings until re-closed |
+| POST | `/dsr/:id/discard` | `dsr.reopen` | `{ reason }` | Removes a day opened by mistake: latest day, open, never closed. Readings are kept in the audit entry |
 
 ## RTT
 

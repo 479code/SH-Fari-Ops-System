@@ -1,11 +1,19 @@
-/** roles.service.ts — roles and their permission sets. */
+/**
+ * roles.service.ts — roles and their permission sets.
+ *
+ * A role manager can only create or edit roles within their own access, so
+ * roles.manage cannot be used to mint a more powerful role.
+ */
 import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { db, type Tx } from "../db/client.ts";
 import { permissions, rolePermissions, roles, userRoles } from "../db/schema/index.ts";
 import type { Actor } from "../types.ts";
 import { AppError, conflict, notFound } from "../utils/errors.ts";
 import { recordAudit } from "./audit.service.ts";
-import { assertAdministratorsRemain } from "./users.service.ts";
+import { assertAdministratorsRemain, assertWithinActorAccess, permissionsOfRoles } from "./users.service.ts";
+
+const BEYOND_OWN = "You cannot grant permissions you do not have.";
+const OUTRANKED = "You cannot change a role that has access you do not have.";
 
 export async function listRoles() {
   const [roleRows, grants, counts] = await Promise.all([
@@ -47,6 +55,7 @@ async function permissionIds(tx: Tx, codes: string[]) {
 }
 
 export async function createRole(actor: Actor, input: { name: string; description?: string | null; permissions: string[] }) {
+  assertWithinActorAccess(actor, input.permissions, BEYOND_OWN);
   await db.transaction(async (tx) => {
     const [dup] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, input.name));
     if (dup) throw new AppError("CONFLICT", `A role named ${input.name} already exists.`, { fields: { name: "Role name already in use." } });
@@ -68,6 +77,7 @@ export async function updateRole(actor: Actor, id: number, input: { name?: strin
   await db.transaction(async (tx) => {
     const [role] = await tx.select().from(roles).where(eq(roles.id, id)).for("update");
     if (!role) throw notFound("Role");
+    assertWithinActorAccess(actor, await permissionsOfRoles(tx, [id]), OUTRANKED);
     if (input.name && input.name !== role.name) {
       const [dup] = await tx.select({ id: roles.id }).from(roles).where(and(eq(roles.name, input.name), ne(roles.id, id)));
       if (dup) throw new AppError("CONFLICT", `A role named ${input.name} already exists.`, { fields: { name: "Role name already in use." } });
@@ -81,6 +91,7 @@ export async function updateRole(actor: Actor, id: number, input: { name?: strin
     let added: string[] = [];
     let removed: string[] = [];
     if (input.permissions) {
+      assertWithinActorAccess(actor, input.permissions, BEYOND_OWN);
       const current = (
         await tx
           .select({ code: permissions.code })
@@ -115,6 +126,7 @@ export async function deleteRole(actor: Actor, id: number) {
     const [role] = await tx.select().from(roles).where(eq(roles.id, id)).for("update");
     if (!role) throw notFound("Role");
     if (role.isSystem) throw conflict("System roles cannot be deleted.");
+    assertWithinActorAccess(actor, await permissionsOfRoles(tx, [id]), OUTRANKED);
     const [assigned] = await tx.select({ n: count() }).from(userRoles).where(eq(userRoles.roleId, id));
     if (assigned && assigned.n > 0) throw conflict(`This role is assigned to ${assigned.n} user(s). Reassign them first.`);
     await tx.delete(roles).where(eq(roles.id, id));

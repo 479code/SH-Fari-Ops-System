@@ -13,7 +13,7 @@ import { stationFilter, assertStationAccess } from "../auth/scope.ts";
 import { db, type Executor } from "../db/client.ts";
 import { exceptions, stations, users, type ExceptionType } from "../db/schema/index.ts";
 import type { Actor } from "../types.ts";
-import { conflict, notFound } from "../utils/errors.ts";
+import { conflict, isDuplicateKey, notFound } from "../utils/errors.ts";
 import { paginationMeta } from "../utils/http.ts";
 import { recordAudit } from "./audit.service.ts";
 
@@ -32,12 +32,14 @@ export interface RaiseInput {
 }
 
 /** Returns true when an exception was newly opened or reopened. */
-export async function raiseException(ex: Executor, input: RaiseInput): Promise<boolean> {
-  const [existing] = await ex
+export async function raiseException(ex: Executor, input: RaiseInput, lockingRead = false): Promise<boolean> {
+  const query = ex
     .select({ id: exceptions.id, status: exceptions.status, amount: exceptions.amount })
     .from(exceptions)
     .where(and(eq(exceptions.type, input.type), eq(exceptions.sourceType, input.sourceType), eq(exceptions.sourceId, input.sourceId)))
     .limit(1);
+  // A locking read sees rows committed after this transaction's snapshot.
+  const [existing] = lockingRead ? await query.for("update") : await query;
 
   const now = new Date();
   const values = {
@@ -50,15 +52,21 @@ export async function raiseException(ex: Executor, input: RaiseInput): Promise<b
   };
 
   if (!existing) {
-    await ex.insert(exceptions).values({
-      ...values,
-      type: input.type,
-      sourceType: input.sourceType,
-      sourceId: input.sourceId,
-      status: "open",
-      raisedAt: now,
-    });
-    return true;
+    try {
+      await ex.insert(exceptions).values({
+        ...values,
+        type: input.type,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        status: "open",
+        raisedAt: now,
+      });
+      return true;
+    } catch (err) {
+      // Another request raised it at the same moment: update that row instead.
+      if (!isDuplicateKey(err) || lockingRead) throw err;
+      return raiseException(ex, input, true);
+    }
   }
 
   const figuresChanged = (existing.amount ?? null) !== (input.amount ?? null);
