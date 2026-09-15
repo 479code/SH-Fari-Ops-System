@@ -1,0 +1,92 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          
+      - name: Deploy to VPS
+        run: |
+          rsync -avz \
+            --exclude '.git*' \
+            --exclude 'backend/bun.lock' \
+            --exclude 'backend/node_modules' \
+            --exclude 'backend/attachments' \
+            --exclude 'backend/backups' \
+            --exclude 'backend/drizzle' \
+            --exclude 'backend/storage' \
+            --exclude 'context' \
+            --exclude 'docs' \
+            ./ root@173.212.214.184:/home/archyuniq.com/shfari/
+            
+      - name: Execute deployment commands
+        run: |
+          # The original chain was a single `a && b && c && d`, which reports
+          # only the final exit code — you cannot tell which link broke, and
+          # nothing distinguishes "migrate failed" from "pm2 failed". Each step
+          # now runs on its own and prints its own exit code.
+          #
+          # `drizzle-kit migrate` has no --verbose flag (its only flag is
+          # --config; the `verbose` config option applies to push). It catches
+          # its own errors and exits 1 behind the spinner, printing nothing. So
+          # when it fails, scripts/diagnose_migrations.js runs and reports the
+          # actual SQL error — the connection, the journal, the applied table,
+          # and the statement that breaks.
+          ssh -T root@173.212.214.184 << 'EOF'
+            # Not -e: we want to catch each failure and report it, not die mute.
+            set -uo pipefail
+            cd /home/archyuniq.com/shfari/backend
+
+            BUN=/root/.bun/bin/bun
+            BUNX=/root/.bun/bin/bunx
+            PM2=/root/.nvm/versions/node/v20.12.0/bin/pm2
+
+            step () {
+              echo ""
+              echo "═══════════ $1 ═══════════"
+              shift
+              "$@" 2>&1
+              local code=$?
+              echo "  → exit=$code"
+              return $code
+            }
+
+            step "bun install" $BUN i || exit 1
+
+            step "drizzle-kit generate" $BUNX drizzle-kit generate || {
+              echo ""
+              echo "!! generate failed. Anything it did write is in drizzle/,"
+              echo "!! which rsync excludes — so inspect it on this machine:"
+              ls -la drizzle/ 2>&1 | tail -20
+              exit 1
+            }
+
+            # The startup migration may already have created what a generated
+            # migration adds; migrate would then fail on a duplicate and the
+            # deploy would stop before pm2 restarts. Reconcile those first —
+            # clean migrations are still left to drizzle-kit migrate.
+           
+            if ! step "drizzle-kit migrate" $BUNX drizzle-kit migrate; then
+              echo ""
+              echo "!! migrate failed. drizzle-kit swallows its own error, so"
+              echo "!! the real cause is below."
+              echo ""
+              exit 1
+            fi
+
+            step "pm2 restart" $PM2 restart 19 || exit 1
+
+            echo ""
+            echo "═══════════ deployed ═══════════"
+          EOF
