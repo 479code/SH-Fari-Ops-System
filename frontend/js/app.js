@@ -131,6 +131,17 @@ function bindAuthForms() {
       try {
         const res = await api.post("/auth/login", { username: values.username ?? "", password: values.password ?? "" });
         form.reset();
+        // The credentials were accepted; make sure the browser actually kept the
+        // session cookie (it silently drops Secure cookies on plain http://).
+        try {
+          await api.get("/auth/me");
+        } catch (err) {
+          if (err.status !== 401) throw err;
+          showLogin(
+            "Your password was accepted, but this browser rejected the session cookie. Open the app over https://, or set COOKIE_SECURE=false on a server that is only reachable over http://.",
+          );
+          return;
+        }
         // Page modules were initialised for the previous session (station scope,
         // hidden controls); start clean instead of re-using them.
         if (started) {

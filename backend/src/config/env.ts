@@ -14,6 +14,12 @@ const bool = (fallback: boolean) =>
     .optional()
     .transform((v) => (v === undefined || v === "" ? fallback : /^(1|true|yes|on)$/i.test(v)));
 
+/** Like `bool`, but an unset value stays undefined so a context-dependent default can apply. */
+const optionalBool = z
+  .string()
+  .optional()
+  .transform((v) => (v === undefined || v.trim() === "" ? undefined : /^(1|true|yes|on)$/i.test(v.trim())));
+
 const int = (fallback: number, min: number, max: number) =>
   z.coerce.number().int().min(min).max(max).default(fallback);
 
@@ -72,8 +78,15 @@ const schema = z.object({
     ),
   /** Directory of the static frontend, relative to the backend folder. Empty disables static serving. */
   FRONTEND_DIR: z.string().default("../frontend"),
-  /** Honour X-Forwarded-For for client IPs. Enable only behind a trusted reverse proxy. */
+  /** Honour X-Forwarded-* headers. Enable only behind a trusted reverse proxy. */
   TRUST_PROXY: bool(false),
+  /**
+   * Mark the session cookie Secure (HTTPS-only). Unset: on in production, off
+   * otherwise. Browsers silently drop Secure cookies over plain http://, which
+   * makes sign-in bounce straight back to the login screen — so set this to
+   * false only for a deployment that is genuinely reached over http.
+   */
+  COOKIE_SECURE: optionalBool,
   API_RATE_LIMIT_PER_MINUTE: int(600, 10, 100_000),
   LOGIN_RATE_LIMIT_PER_MINUTE: int(10, 1, 100_000),
 
@@ -99,3 +112,4 @@ function load(): Env {
 export const env = load();
 export const isProduction = env.NODE_ENV === "production";
 export const isTest = env.NODE_ENV === "test";
+export const cookieSecure = env.COOKIE_SECURE ?? isProduction;

@@ -15,6 +15,7 @@
     "db:migrate": "bun src/db/migrate.ts",
     "db:seed": "bun src/db/seed.ts",
     "db:seed:demo": "bun src/db/seed-demo.ts",
+    "admin:reset-password": "bun src/db/reset-admin-password.ts",
     "db:studio": "bunx --bun drizzle-kit studio"
   },
   "dependencies": {

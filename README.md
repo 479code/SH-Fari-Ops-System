@@ -221,7 +221,8 @@ Built-in controls:
 | `Table … doesn't exist` | Run `bun run db:migrate` |
 | Sign-in works but every page is 403 “change your password” | The account has a temporary password — complete the change-password screen |
 | “Account temporarily locked” | Wait `LOGIN_LOCKOUT_MINUTES` or unlock the user in Setup → Users & roles |
-| Cookie not kept in production | HTTPS is required (`__Host-` + `Secure`); set `TRUST_PROXY=true` behind a proxy |
+| Can't sign in with the credentials put in `SEED_ADMIN_*` | `db:seed` only creates an admin when none exists and never changes a password (it reports this when run). Set one on the server: `bun run admin:reset-password admin --password '<temporary password>'` (add `--create` if that username does not exist). The account is unlocked and reactivated, and the password must be changed at first sign-in |
+| Sign-in accepted but you land back on the login screen | The browser dropped the session cookie: production cookies are `Secure`, which only works over HTTPS. Serve the app over https:// (set `TRUST_PROXY=true` behind the proxy), or set `COOKIE_SECURE=false` for a plain-http deployment |
 | “Cross-site request blocked” | The page origin differs from the API origin — serve both from the same origin or add the origin to `CORS_ORIGIN` |
 | “Close the DSR for … before recording a physical dip” | Dips compare against system stock after the day's sales; close the DSR first |
 | “The business day … is closed and locked” | Reopen that day in DSR (requires `dsr.reopen`), make the change, close it again |

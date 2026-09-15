@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { env, isProduction } from "../config/env.ts";
+import { cookieSecure, env } from "../config/env.ts";
 import { SESSION_COOKIE } from "../auth/tokens.ts";
 import { requireAuth } from "../middleware/auth.ts";
 import { rateLimit } from "../middleware/rate-limit.ts";
@@ -27,7 +27,7 @@ authRoutes.post("/login", loginLimiter, async (c) => {
   const result = await authService.login(input.username, input.password, client(c));
   setCookie(c, SESSION_COOKIE, result.token, {
     httpOnly: true,
-    secure: isProduction,
+    secure: cookieSecure,
     sameSite: "Strict",
     path: "/",
     expires: result.expiresAt,
@@ -38,7 +38,7 @@ authRoutes.post("/login", loginLimiter, async (c) => {
 authRoutes.post("/logout", async (c) => {
   const token = getCookie(c, SESSION_COOKIE);
   if (token) await authService.logout(token, client(c));
-  deleteCookie(c, SESSION_COOKIE, { path: "/", secure: isProduction });
+  deleteCookie(c, SESSION_COOKIE, { path: "/", secure: cookieSecure });
   return ok(c, null, "Signed out.");
 });
 

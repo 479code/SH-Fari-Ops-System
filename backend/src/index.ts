@@ -1,6 +1,6 @@
 /** index.ts — process entry point: HTTP server, scheduler and graceful shutdown. */
 import { createApp } from "./app.ts";
-import { env } from "./config/env.ts";
+import { cookieSecure, env, isProduction } from "./config/env.ts";
 import { closeDb, pingDb } from "./db/client.ts";
 import { startScheduler, stopScheduler } from "./jobs/scheduler.ts";
 import { logger } from "./utils/logger.ts";
@@ -13,7 +13,10 @@ const server = Bun.serve({
   fetch: app.fetch,
 });
 
-logger.info("server started", { url: `http://${env.HOST}:${env.PORT}`, env: env.NODE_ENV, database: env.DATABASE_NAME });
+logger.info("server started", { url: `http://${env.HOST}:${env.PORT}`, env: env.NODE_ENV, database: env.DATABASE_NAME, httpsOnlySession: cookieSecure });
+if (isProduction && !cookieSecure) {
+  logger.warn("COOKIE_SECURE=false in production: the session cookie is sent over plain HTTP. Serve the app over HTTPS as soon as possible.");
+}
 
 if (!(await pingDb())) {
   logger.warn("database is not reachable yet — API calls will fail until it is available");
