@@ -5,6 +5,7 @@ import { dateInput, stationOptions } from "../core/filters.js";
 import { dateTime, litres, naira, price } from "../core/format.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, defaultStationId, today } from "../core/state.js";
+import { loadTankMovements, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankHotspot } from "../core/twin.js";
 import { fillTable, formModal, reasonModal, showFieldErrors, tableError, tableLoading, toast, toastError, withBusy } from "../core/ui.js";
 
 const STATUS = {
@@ -43,37 +44,27 @@ function productRow(p) {
   return html`<tr${p.total ? html` style="font-weight:700"` : ""}><td class="strong">${p.productCode}</td><td class="num">${litres(p.netSales)}</td><td class="num">${litres(p.rtt)}</td><td class="num">${p.avgPrice === null || p.avgPrice === undefined ? "—" : price(p.avgPrice)}</td><td class="num">${naira(p.salesValue)}</td></tr>`;
 }
 
-function assetLabel(cls, name, value, extra = "") {
-  return html`<div class="asset-label ${cls}"><span class="label-name">${name}</span><span class="label-value">${value}</span>${extra}</div>`;
-}
+async function renderStationIllustration() {
+  const stationId = Number($("#dsrStation").value);
+  const date = $("#dsrDate").value;
+  const pumpReadings = day?.readings ?? [];
+  const { shownPumps, overflowPumps, shownTanks, overflowTanks } = splitStationForIllustration(stationId);
+  const allTanks = [...shownTanks, ...overflowTanks];
 
-function renderPumpIllustration() {
-  const shown = day.readings.slice(0, 3);
-  const overflow = day.readings.slice(3);
+  const pumpBlocks = shownPumps.map((p, i) => pumpHotspot(p, i, pumpReadings.find((r) => r.pumpName === p.name)));
+  const { byTankId, byProduct } = await loadTankMovements(stationId, allTanks, date);
 
-  const pumpBlocks = shown.map((r, i) => {
-    const value = r.netSales === null ? "—" : `${litres(r.netSales)} L`;
-    return assetLabel(`pump-label p${i + 1}`, `${r.pumpName} · ${r.productCode}`, value, r.closingReading === null ? html`<small>No closing reading yet</small>` : "");
-  });
+  // Station or date may have changed while the tank fetch was in flight — a stale render would show the wrong station's numbers.
+  if (Number($("#dsrStation").value) !== stationId || $("#dsrDate").value !== date) return;
+
+  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, byProduct.get(code)));
   setHtml(
     $("#dsrCanvas"),
-    day.readings.length
-      ? html`<img class="station-scene" src="/assets/station-scene.jpg" alt="Illustrative pump layout for this station">${pumpBlocks}`
-      : html`<div class="chart-empty">No active pumps at this station — register pumps in Setup.</div>`,
+    shownPumps.length || shownTanks.length
+      ? html`${stationScene("Illustrative pump and tank layout for this station")}${pumpBlocks}${tankBlocks}`
+      : html`<div class="chart-empty">No active pumps or tanks at this station — register them in Setup.</div>`,
   );
-
-  const overflowEl = $("#dsrOverflow");
-  if (!overflow.length) {
-    overflowEl.hidden = true;
-  } else {
-    overflowEl.hidden = false;
-    setHtml(
-      overflowEl,
-      html`<div class="plain-note">Beyond the illustration's 3 fixed pump slots:</div><div class="plain-grid">${overflow.map(
-        (r) => html`<div class="plain-card"><label>${r.pumpName} · ${r.productCode}</label><strong>${r.netSales === null ? "—" : `${litres(r.netSales)} L`}</strong><div class="hint">Net sales today</div></div>`,
-      )}</div>`,
-    );
-  }
+  renderOverflowInto($("#dsrOverflow"), overflowPumps, overflowTanks, { movementsByTankId: byTankId, pumpReadings });
 }
 
 function render() {
@@ -102,7 +93,7 @@ function render() {
   }
   $("#dsrMeta").textContent = meta;
 
-  renderPumpIllustration();
+  renderStationIllustration().catch(() => {});
 
   setHtml(
     $("#dsrPumps"),

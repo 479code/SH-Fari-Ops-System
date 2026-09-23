@@ -13,11 +13,11 @@ import { api } from "../api/client.js";
 import { $, html, raw, setHtml } from "../core/dom.js";
 import { areaChart, bars } from "../core/charts.js";
 import { exceptionPill, openException } from "../core/exceptions.js";
-import { pumpsFor, tanksFor } from "../core/filters.js";
 import { monthLabel, naira, number, pct, recentMonths } from "../core/format.js";
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
+import { loadTankMovements, pumpHotspot, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankHotspot } from "../core/twin.js";
 import { fillTable, infoModal, tableError, tableLoading, toastError } from "../core/ui.js";
 
 const ICON_PATHS = {
@@ -33,7 +33,6 @@ const ICON_PATHS = {
   arrow: "M5 12h14M13 6l6 6-6 6",
 };
 const ico = (name, cls = "") => raw(`<svg class="ico ${cls}" viewBox="0 0 24 24">${`<path d="${ICON_PATHS[name]}"/>`}</svg>`);
-const signed = (v) => `${v >= 0 ? "+" : ""}${number(v)}`;
 
 let stationId = null;
 let exceptionItems = [];
@@ -132,89 +131,19 @@ function renderSwitcher() {
 
 /* ------------------------------------------------------------------ Twin */
 
-function assetLabel(cls, name, value, extra = "") {
-  return html`<div class="asset-label ${cls}"><span class="label-name">${name}</span><span class="label-value">${value}</span>${raw(extra)}</div>`;
-}
-
-function tankVarianceBlock(movement) {
-  if (!movement || movement.physicalDip === null || movement.physicalDip === undefined) {
-    return html`<small>Awaiting today's dip</small>`;
-  }
-  const within = Math.abs(movement.variance) <= movement.tolerance;
-  return html`<span class="reading-line"><span>System</span><b>${number(movement.closing)} L</b></span><span class="reading-line"><span>Dip</span><b>${number(movement.physicalDip)} L</b></span><span class="variance-label">${ico(within ? "check" : "alert")}${within ? `Within ±${number(movement.tolerance)} L tolerance` : `${signed(movement.variance)} L · Above tolerance`}</span>`;
-}
-
-/** The illustration has 3 fixed pump slots and one PMS + one AGO tank slot —
- * that's baked into the artwork. Whatever a station actually has beyond that
- * (a 4th+ pump, a second tank of the same product, any other product) still
- * gets shown, just as a plain real-numbers list alongside the picture rather
- * than forced onto a hotspot position that doesn't exist for it. */
-function splitForIllustration(sId) {
-  const pumps = pumpsFor(sId);
-  const tanks = tanksFor(sId)
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const pms = tanks.find((t) => t.productCode === "PMS");
-  const ago = tanks.find((t) => t.productCode === "AGO");
-  const shownTanks = [pms, ago].filter(Boolean);
-  const shownIds = new Set(shownTanks.map((t) => t.id));
-  return {
-    shownPumps: pumps.slice(0, 3),
-    overflowPumps: pumps.slice(3),
-    shownTanks,
-    overflowTanks: tanks.filter((t) => !shownIds.has(t.id)),
-  };
-}
-
 async function renderTwin(shownPumps, movementsById, dsrDay, receipt) {
   const pumpReadings = dsrDay?.readings ?? [];
-  const pumpBlocks = shownPumps.map((p, i) => {
-    const reading = pumpReadings.find((r) => r.pumpName === p.name);
-    const value = reading?.netSales != null ? `${number(reading.netSales)} L` : "—";
-    return assetLabel(`pump-label p${i + 1}`, `${p.name} · ${p.productCode}`, value, reading ? "" : "<small>No reading today</small>");
-  });
-
-  const receiptBlock = receipt
-    ? assetLabel("receipt-label", receipt.waybillRef, `${number(receipt.quantity)} L ${receipt.productCode}`, `<small class="green">✓ Verified receipt</small>`)
-    : "";
-
-  const tankBlocks = ["PMS", "AGO"].map((code) => {
-    const m = movementsById.get(code);
-    if (!m) return "";
-    const cls = code === "PMS" ? "tank-label pms" : "tank-label ago";
-    return html`<div class="${cls}"><span class="label-name">${code} · ${m.tankName ?? "Tank"}</span><span class="label-value">${number(m.closing)} L</span>${tankVarianceBlock(m)}</div>`;
-  });
+  const pumpBlocks = shownPumps.map((p, i) => pumpHotspot(p, i, pumpReadings.find((r) => r.pumpName === p.name)));
+  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, movementsById.get(code)));
 
   setHtml(
     $("#twinCanvas"),
-    html`<img class="station-scene" src="/assets/station-scene.jpg" alt="Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks">${receiptBlock}${pumpBlocks}${tankBlocks}`,
+    html`${stationScene("Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks")}${receiptHotspot(receipt)}${pumpBlocks}${tankBlocks}`,
   );
 }
 
 function renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay) {
-  const el = $("#twinOverflow");
-  if (!overflowPumps.length && !overflowTanks.length) {
-    el.hidden = true;
-    return;
-  }
-  el.hidden = false;
-  const pumpReadings = dsrDay?.readings ?? [];
-  const cards = [
-    ...overflowTanks.map((t) => {
-      const m = movementsByTankId.get(t.id);
-      const noDip = !m || m.physicalDip === null || m.physicalDip === undefined;
-      const within = !noDip && Math.abs(m.variance) <= m.tolerance;
-      return html`<div class="plain-card"><label>${t.productCode} · ${t.name}</label><strong>${m ? `${number(m.closing)} L` : "—"}</strong><div class="hint">${noDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signed(m.variance)} L variance`}</div></div>`;
-    }),
-    ...overflowPumps.map((p) => {
-      const r = pumpReadings.find((x) => x.pumpName === p.name);
-      return html`<div class="plain-card"><label>${p.name} · ${p.productCode}</label><strong>${r?.netSales != null ? `${number(r.netSales)} L` : "—"}</strong><div class="hint">Net sales today</div></div>`;
-    }),
-  ];
-  setHtml(
-    el,
-    html`<div class="plain-note">Beyond what the illustration's fixed hotspots can show:</div><div class="plain-grid">${cards}</div>`,
-  );
+  renderOverflowInto($("#twinOverflow"), overflowPumps, overflowTanks, { movementsByTankId, pumpReadings: dsrDay?.readings ?? [] });
 }
 
 function renderEquation(movement) {
@@ -229,7 +158,7 @@ function renderEquation(movement) {
     ["Receipts", number(movement.receipts)],
     ["Sales", number(movement.dispensed)],
     ["RTT", number(movement.rtt)],
-    ["Adj.", signed(movement.adjustments)],
+    ["Adj.", signedNumber(movement.adjustments)],
     ["System", `${number(movement.closing)} L`],
   ];
   setHtml(
@@ -295,11 +224,11 @@ async function loadTwin() {
   $("#twinStationSub").textContent = `Station overview · ${station.code}`;
   renderSwitcher();
 
-  const { shownPumps, overflowPumps, shownTanks, overflowTanks } = splitForIllustration(stationId);
+  const { shownPumps, overflowPumps, shownTanks, overflowTanks } = splitStationForIllustration(stationId);
   const allTanks = [...shownTanks, ...overflowTanks];
   const date = today();
 
-  const [dsrDay, receiptRows, movements, gitRows] = await Promise.all([
+  const [dsrDay, receiptRows, { byTankId: movementsByTankId, byProduct: movementsByProduct }, gitRows] = await Promise.all([
     api
       .get("/dsr/day", { stationId, date })
       .then((r) => r.data)
@@ -308,27 +237,12 @@ async function loadTwin() {
       .get("/receipts", { stationId, status: "verified", sortOrder: "desc", limit: 1 })
       .then((r) => r.data)
       .catch(() => []),
-    Promise.all(
-      allTanks.map((t) =>
-        api
-          .get("/stock/movement", { stationId, productId: t.productId, date })
-          .then((r) => r.data)
-          .catch(() => null),
-      ),
-    ),
+    loadTankMovements(stationId, allTanks, date),
     api
       .get("/git-orders", { stationId, status: "open", limit: 5 })
       .then((r) => r.data)
       .catch(() => []),
   ]);
-
-  const movementsByTankId = new Map();
-  const movementsByProduct = new Map();
-  allTanks.forEach((t, i) => {
-    if (!movements[i]) return;
-    movementsByTankId.set(t.id, movements[i]);
-    if (!movementsByProduct.has(t.productCode)) movementsByProduct.set(t.productCode, movements[i]);
-  });
 
   await renderTwin(shownPumps, movementsByProduct, dsrDay, receiptRows[0] ?? null);
   renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay);
