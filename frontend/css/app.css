@@ -1210,6 +1210,17 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   .stat{border-left:0;border-top:1px solid var(--border);padding:10px 12px 0;}
   .stat:nth-child(1),.stat:nth-child(2){border-top:0;padding-top:0;}
 }
+.tank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:18px;}
+.tank-card{display:grid;grid-template-columns:80px minmax(0,1fr);gap:16px;align-items:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;font-family:inherit;transition:box-shadow .15s,border-color .15s;}
+.tank-card:hover{box-shadow:var(--shadow);border-color:var(--border-2);}
+.tank-cutaway{height:112px;width:76px;border-radius:32px 32px 18px 18px;border:2px solid #c2d0d9;position:relative;background:linear-gradient(90deg,#eef4f6,#fff,#e0e9ed);overflow:hidden;box-shadow:inset 0 0 10px #142f4308;flex-shrink:0;}
+.tank-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(90deg,#62a89e99,#31918899);border-top:2px solid #2b807a;transition:height .3s;}
+.tank-fill.amber{background:linear-gradient(90deg,#d0ac6199,#dbb15999);border-color:#c39035;}
+.tank-cutaway span{position:absolute;bottom:10px;width:100%;text-align:center;color:#fff;font-size:10.5px;font-weight:800;text-shadow:0 1px 2px #194f4377;}
+.tank-info h3{font-size:13px;font-weight:700;margin-bottom:4px;}
+.tank-info strong.big{font-size:20px;letter-spacing:-0.6px;display:block;}
+.tank-info .reading-line{font-size:10.5px;margin-top:5px;}
+.tank-info .pill{margin-top:9px;}
 /* Supplementary panel under the station illustration for whatever the
    picture's fixed hotspots can't show (a 4th+ pump, a 2nd tank of the same
    product, any other product) — real numbers, plain list, always real data. */

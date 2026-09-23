@@ -5,7 +5,8 @@ import { dateInput, monthStart, productOptions, stationOptions, tanksFor } from 
 import { date, litres, number, shortDate, statusPill } from "../core/format.js";
 import { refreshBadges } from "../core/shell.js";
 import { defaultStationId, today } from "../core/state.js";
-import { bindForm, closeModal, fillTable, renderPager, tableError, tableLoading, toast } from "../core/ui.js";
+import { tankDetailModal } from "../core/twin.js";
+import { bindForm, closeModal, fillTable, renderPager, tableError, tableLoading, toast, toastError } from "../core/ui.js";
 
 let page = 1;
 
@@ -43,24 +44,46 @@ async function loadMovement() {
   }
 }
 
+function tankCard(t) {
+  const d = t.latestDip;
+  const pct = t.capacity ? Math.min(100, Math.max(4, Math.round((t.balance / t.capacity) * 100))) : 60;
+  return html`<button type="button" class="tank-card" data-tank-id="${t.id}" data-station-id="${t.stationId}" data-product-id="${t.productId}">
+    <div class="tank-cutaway"><div class="tank-fill ${t.productCode === "AGO" ? "amber" : ""}" style="height:${pct}%"></div><span>${t.productCode}</span></div>
+    <div class="tank-info">
+      <h3>${t.name} · ${t.stationName}</h3>
+      <strong class="big num">${number(t.balance)} L</strong>
+      ${d
+        ? html`<div class="reading-line"><span>Variance</span><b>${litres(d.variance, 1, { signed: true })} L</b></div><div class="reading-line"><span>Tolerance</span><b>±${number(d.tolerance)} L</b></div>${statusPill(d.toleranceStatus)}`
+        : html`<div class="reading-line"><span>Latest dip</span><b>Not recorded</b></div><span class="pill gray">Not dipped</span>`}
+    </div>
+  </button>`;
+}
+
 async function loadTanks() {
   const list = $("#stTankList");
   setHtml(list, html`<div class="chart-empty"><span class="spinner dark"></span>Loading…</div>`);
   try {
     const { data } = await api.get("/stock/tanks", { stationId: $("#stStation").value });
-    setHtml(
-      list,
-      data.length
-        ? html`${data.map((t) => {
-            const d = t.latestDip;
-            return html`<div class="exception-row"><div class="exc-body"><div class="exc-title">${t.name} — ${t.stationName}</div>
-              <div class="exc-meta">Balance ${litres(t.balance)} L ${t.productCode} · ${d ? `Variance ${litres(d.variance, 1, { signed: true })}L on ${shortDate(d.businessDate)} · tolerance ±${number(d.tolerance)}L` : "No dip recorded yet"}</div></div>
-              ${d ? statusPill(d.toleranceStatus) : html`<span class="pill gray">Not dipped</span>`}</div>`;
-          })}`
-        : html`<div class="chart-empty">No active tanks at this station.</div>`,
-    );
+    setHtml(list, data.length ? html`<div class="tank-grid">${data.map(tankCard)}</div>` : html`<div class="chart-empty">No active tanks at this station.</div>`);
   } catch (err) {
     setHtml(list, html`<div class="chart-empty">${err.message}</div>`);
+  }
+}
+
+async function openTankFromCard(stationId, productId, tankId) {
+  try {
+    const { data: m } = await api.get("/stock/movement", { stationId, productId, tankId, date: $("#stDate").value });
+    tankDetailModal(m.productCode, m, {
+      onOpenLedger: () => {
+        $("#stStation").value = String(stationId);
+        $("#stProduct").value = String(productId);
+        loadMovement();
+        loadLedger();
+        $("#stMovementBody").closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+    });
+  } catch (err) {
+    toastError(err);
   }
 }
 
@@ -142,6 +165,11 @@ export default {
     productOptions($("#stProduct"));
     dateInput($("#stDate"), today());
     for (const id of ["#stStation", "#stProduct", "#stDate"]) $(id).addEventListener("change", loadAll);
+
+    $("#stTankList").addEventListener("click", (e) => {
+      const card = e.target.closest("[data-tank-id]");
+      if (card) openTankFromCard(Number(card.dataset.stationId), Number(card.dataset.productId), Number(card.dataset.tankId));
+    });
 
     $("#dpStation").addEventListener("change", () => {
       fillTankSelect($("#dpStation"), $("#dpTank"));
