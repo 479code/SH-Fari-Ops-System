@@ -45,7 +45,7 @@ svg.ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;st
   position:sticky;top:0;height:100vh;background:var(--navy);color:#A9BFCE;
   display:flex;flex-direction:column;align-items:center;padding:20px 0 16px;gap:10px;z-index:25;
 }
-.monogram{font-style:italic;letter-spacing:-2px;font-size:21px;font-weight:800;color:var(--amber);margin:0 0 14px;}
+.monogram{width:34px;height:34px;object-fit:contain;border-radius:7px;background:#0a0908;padding:3px;margin:0 0 14px;}
 .rail-button{background:none;border:0;color:inherit;display:grid;place-items:center;width:60px;height:42px;position:relative;cursor:pointer;}
 .rail-button svg{width:19px;height:19px;}
 .rail-button.active{background:#1C435B;color:var(--amber);}
@@ -55,15 +55,16 @@ svg.ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;st
 
 /* Brand mark used by the sign-in card (a different markup shape than the sidebar brand below) */
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(155deg,var(--amber),#B4720B);display:flex;align-items:center;justify-content:center;color:var(--navy);font-weight:800;font-size:13px;flex-shrink:0;}
+.brand-mark{width:36px;height:36px;border-radius:9px;background:#0a0908;object-fit:contain;padding:3px;flex-shrink:0;}
 .brand-text{line-height:1.22;}
 .brand-eyebrow{font-size:10px;letter-spacing:0.6px;color:var(--text-3);font-weight:700;}
 .brand-name{font-size:14px;font-weight:800;color:var(--text);}
 
 .sidebar{position:sticky;top:0;height:100vh;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:24;}
-.sidebar .brand{padding:22px 18px 18px;display:block;border-right:0;}
-.sidebar .brand strong{font-size:18px;letter-spacing:-0.6px;display:block;line-height:1.15;color:var(--text);}
-.sidebar .brand span{font-size:9.5px;letter-spacing:2px;color:var(--text-3);font-weight:700;}
+.sidebar .brand{padding:20px 18px 18px;display:flex;align-items:center;gap:10px;border-right:0;}
+.brand-icon{width:32px;height:32px;object-fit:contain;border-radius:7px;background:#0a0908;padding:3px;flex-shrink:0;}
+.sidebar .brand strong{font-size:16px;letter-spacing:-0.4px;display:block;line-height:1.2;color:var(--text);}
+.sidebar .brand small{font-size:9px;letter-spacing:1.8px;color:var(--text-3);font-weight:700;}
 .sidebar-nav{overflow:auto;flex:1;padding:2px 9px 14px;}
 .nav-group{padding:0 1px;margin-top:12px;}
 .nav-group:first-child{margin-top:2px;}
