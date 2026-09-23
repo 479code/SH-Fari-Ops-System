@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="api-base" content="/api/v1">
+<title>SH Fari Ops — Station Management &amp; Financial Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="css/app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<!-- ============ BOOT / SIGN-IN ============ -->
+<div class="boot-screen" id="bootScreen"><span class="spinner dark"></span>Loading SH Fari Ops…</div>
+
+<div class="auth-screen" id="authScreen" hidden>
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-mark">SF</div>
+      <div class="brand-text"><div class="brand-eyebrow">SH FARI OPS</div><div class="brand-name">Station Control</div></div>
+    </div>
+
+    <form id="loginForm" novalidate>
+      <h1>Sign in</h1>
+      <p class="lead">Use the account issued by your administrator.</p>
+      <div class="form-error" hidden></div>
+      <div class="field"><label for="loginUsername">Username</label><input class="input" id="loginUsername" name="username" autocomplete="username" style="width:100%"></div>
+      <div class="field"><label for="loginPassword">Password</label><input class="input" id="loginPassword" name="password" type="password" autocomplete="current-password" style="width:100%"></div>
+      <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+
+    <form id="resetForm" novalidate hidden>
+      <h1>Set a new password</h1>
+      <p class="lead" id="resetLead">Choose a password of at least 10 characters with letters and numbers.</p>
+      <div class="form-error" hidden></div>
+      <div class="field" id="currentPasswordField" hidden><label for="currentPassword">Current (temporary) password</label><input class="input" id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" style="width:100%"></div>
+      <div class="field"><label for="resetPassword">New password</label><input class="input" id="resetPassword" name="newPassword" type="password" autocomplete="new-password" style="width:100%"></div>
+      <div class="field"><label for="resetConfirm">Confirm new password</label><input class="input" id="resetConfirm" name="confirmPassword" type="password" autocomplete="new-password" style="width:100%"></div>
+      <button class="btn btn-primary" type="submit">Save password</button>
+      <p class="small muted" style="margin-top:14px"><a href="#" data-action="back-to-login">Back to sign in</a></p>
+    </form>
+  </div>
+</div>
+
+<div id="appShell" hidden>
+<div class="app-shell">
+
+<aside class="icon-rail" aria-label="Workspace shortcuts">
+  <div class="monogram">SF</div>
+  <button type="button" class="rail-button" data-page="dashboard" aria-label="Dashboard"><svg class="ico" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg></button>
+  <button type="button" class="rail-button" data-page="truck" aria-label="Truck receiving"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0"/></svg></button>
+  <button type="button" class="rail-button" data-page="stock" aria-label="Stock &amp; dip"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6c0-4 16-4 16 0v12c0 4-16 4-16 0zM4 6c0 4 16 4 16 0M4 12c0 4 16 4 16 0"/></svg></button>
+  <button type="button" class="rail-button" data-page="cash" aria-label="Cash, POS &amp; bank"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18v14H3zM3 10h18M6 15h3M14 15h4"/></svg></button>
+  <button type="button" class="rail-button" data-page="reports" aria-label="Reports"><svg class="ico" viewBox="0 0 24 24"><path d="M3 21h19M6 17V9h3v8M12 17V3h3v14M18 17v-5h3v5"/></svg></button>
+  <button type="button" class="rail-button" data-page="audit" aria-label="Audit trail"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg></button>
+  <div class="rail-bottom">
+    <button type="button" class="rail-button" data-page="setup" aria-label="Station setup"><svg class="ico" viewBox="0 0 24 24"><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/></svg></button>
+  </div>
+</aside>
+
+<aside class="sidebar">
+  <div class="brand"><strong>SH FARI</strong><span>OPERATIONS</span></div>
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <div class="nav-group">
+      <div class="nav-label">Workspace</div>
+      <button type="button" class="nav-item active" data-page="dashboard"><svg class="ico" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg><span>Dashboard</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Operations</div>
+      <button type="button" class="nav-item" data-page="truck"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0"/></svg><span>Truck receiving</span></button>
+      <button type="button" class="nav-item" data-page="dsr"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></svg><span>DSR</span><span class="nav-count" id="badgeDsr" hidden>Open</span></button>
+      <button type="button" class="nav-item" data-page="rtt"><svg class="ico" viewBox="0 0 24 24"><path d="M3 7v5h5M3 12a9 9 0 1 1 3 7"/></svg><span>RTT</span></button>
+      <button type="button" class="nav-item" data-page="stock"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6c0-4 16-4 16 0v12c0 4-16 4-16 0zM4 6c0 4 16 4 16 0M4 12c0 4 16 4 16 0"/></svg><span>Stock &amp; dip</span><span class="nav-count" id="badgeStock" hidden>0</span></button>
+      <button type="button" class="nav-item" data-page="git"><svg class="ico" viewBox="0 0 24 24"><path d="M2 7h13v11H2zM15 11h4l3 3v4h-7M5 18v3M18 18v3M5 3h10"/></svg><span>GIT</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Finance</div>
+      <button type="button" class="nav-item" data-page="cash"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18v14H3zM3 10h18M6 15h3M14 15h4"/></svg><span>Cash, POS &amp; bank</span></button>
+      <button type="button" class="nav-item" data-page="debtors"><svg class="ico" viewBox="0 0 24 24"><path d="M9 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6M3 21v-3a6 6 0 0 1 12 0v3M17 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 4 5v2"/></svg><span>Debtors</span></button>
+      <button type="button" class="nav-item" data-page="expenses"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h7M9 15h7M9 18h4"/></svg><span>Expenses</span><span class="nav-count" id="badgeExpenses" hidden>0</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Control</div>
+      <button type="button" class="nav-item" data-page="reports"><svg class="ico" viewBox="0 0 24 24"><path d="M3 21h19M6 17V9h3v8M12 17V3h3v14M18 17v-5h3v5"/></svg><span>Reports</span></button>
+      <button type="button" class="nav-item" data-page="audit"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg><span>Audit trail</span></button>
+      <button type="button" class="nav-item" data-page="setup"><svg class="ico" viewBox="0 0 24 24"><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/></svg><span>Station setup</span></button>
+    </div>
+  </nav>
+  <div class="sidebar-foot"><strong id="menuName2">—</strong><span id="menuRole2"></span></div>
+</aside>
+
+<div class="mobile-shade" data-action="menu"></div>
+
+<main class="workspace">
+<header class="topbar">
+  <div class="row">
+    <div class="icon-btn menu-button" id="menuToggle" role="button" tabindex="0" aria-label="Toggle navigation"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+  </div>
+  <div class="top-actions">
+    <div class="menu-wrap">
+      <label class="search-pill"><svg class="ico" viewBox="0 0 24 24"><path d="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M15 15l6 6"/></svg><input id="globalSearch" placeholder="Search records, refs…" autocomplete="off" aria-label="Search records"></label>
+      <div class="menu search-results" id="searchResults" hidden></div>
+    </div>
+    <div class="menu-wrap">
+      <div class="icon-btn" id="bellButton" role="button" tabindex="0" aria-label="Exceptions requiring attention"><span class="dot" id="bellCount" hidden>0</span><svg class="ico" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M9 21h6"/></svg></div>
+      <div class="menu notifications" id="bellMenu" hidden></div>
+    </div>
+    <div class="menu-wrap top-user">
+      <div class="profile-chip" id="profileButton" role="button" tabindex="0"><div class="avatar" id="profileInitials">—</div><span id="profileName">—</span><svg class="ico chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="menu" id="profileMenu" hidden>
+        <div class="menu-head"><b id="menuName"></b><span id="menuRole"></span></div>
+        <div class="menu-item" data-action="change-password">Change password</div>
+        <div class="menu-item" data-action="logout">Sign out</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="content">
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-head">
+      <div><div class="page-title">Dashboard</div><div class="page-desc" id="dashDesc">Month to date, approved records only</div></div>
+      <div class="actions">
+        <select class="select" id="dashStation" aria-label="Station"></select>
+        <button class="btn" data-action="dash-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Export</button>
+        <button class="btn btn-primary" data-action="dash-compare">Station comparison</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num" id="kpiSales">—</div><div class="kpi-label">Sales MTD</div>
+        <div class="kpi-delta up" id="kpiSalesDelta" hidden></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num" id="kpiStock">—</div><div class="kpi-label">Stock value on hand</div>
+        <div class="kpi-delta up" style="background:#EEF2F4;color:var(--text-2)" id="kpiStockSub"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num" id="kpiDebt">—</div><div class="kpi-label">Outstanding debt</div>
+        <div class="kpi-delta down" id="kpiDebtSub" hidden></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><div class="kpi-chip green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div><span class="kpi-more">⋯</span></div>
+        <div class="kpi-value num" id="kpiProfit">—</div><div class="kpi-label">Net profit MTD</div>
+        <div class="kpi-delta up" id="kpiProfitDelta" hidden></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered">
+          <div><div class="panel-title">Sales trend — last 8 weeks</div><div class="panel-sub" id="trendSub">Closed sales days, ₦</div></div>
+          <select class="select" aria-label="Interval"><option>Weekly</option></select>
+        </div>
+        <div class="area-chart" id="salesTrendChart"><div class="chart-empty"><span class="spinner dark"></span>Loading…</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">GIT status</div><div class="panel-sub">By outstanding volume</div></div></div>
+        <div class="donut-wrap"><div id="gitDonut"></div><div class="donut-legend" id="gitLegend"></div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered">
+          <div><div class="panel-title">Exceptions requiring attention</div><div class="panel-sub">Cash and stock variances beyond tolerance, delays and aging</div></div>
+          <span class="pill red" id="dashExceptionCount">0 open</span>
+        </div>
+        <div id="dashExceptions"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">Sales by station — MTD</div></div></div>
+        <div style="padding:8px 0;" id="salesByStation"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head bordered"><div><div class="panel-title">Station-level summary</div><div class="panel-sub" id="stationSummaryMonth">Last closed month</div></div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Trucks recv.</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Debt</th><th class="num">GIT</th></tr></thead>
+        <tbody id="stationSummaryBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ TRUCK RECEIVING ============ -->
+  <div class="page" id="page-truck">
+    <div class="page-head">
+      <div><div class="page-title">Truck receiving</div><div class="page-desc">A verified receipt updates stock automatically and closes any linked GIT order</div></div>
+      <div class="actions"><button class="btn btn-primary" data-open-modal="modalTruck" data-permission="receipts.create">+ Record receipt</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select" id="truckMonth" aria-label="Month"></select>
+        <select class="select" id="truckStation" aria-label="Station"></select>
+        <select class="select" id="truckProduct" aria-label="Product"></select>
+        <select class="select" id="truckStatus" aria-label="Status">
+          <option value="">All statuses</option><option value="received">Awaiting verification</option><option value="verified">Verified</option><option value="disputed">Disputed</option><option value="cancelled">Cancelled</option>
+        </select>
+        <div class="spacer"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" id="truckSearch" placeholder="Waybill / truck / ref"></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Date</th><th>Truck</th><th>Product</th><th class="num">Qty (L)</th><th class="num">Order price</th><th class="num">Landing price</th><th>Waybill ref</th><th>Station</th><th>Status</th><th></th></tr></thead>
+        <tbody id="truckBody"></tbody>
+      </table></div>
+      <div class="pager" id="truckPager" hidden></div>
+      <div class="footnote"><span id="truckSummary"></span> Business rule: a verified receipt increases stock automatically and moves any linked GIT order to Discharged.</div>
+    </div>
+  </div>
+
+  <!-- ============ DSR ============ -->
+  <div class="page" id="page-dsr">
+    <div class="page-head">
+      <div><div class="page-title">Daily Sales Record</div><div class="page-desc">Sales are derived from controlled opening and closing readings — RTT is excluded automatically</div></div>
+      <div class="actions">
+        <button class="btn" id="dsrDiscard" data-permission="dsr.reopen" hidden>Discard day</button>
+        <button class="btn" id="dsrReopen" data-permission="dsr.reopen" hidden>Reopen day</button>
+        <button class="btn" id="dsrSave" data-permission="dsr.record" hidden>Save readings</button>
+        <button class="btn btn-primary" id="dsrOpen" data-permission="dsr.record" hidden>Open day</button>
+        <button class="btn btn-primary" id="dsrClose" data-permission="dsr.close" hidden>Close &amp; lock day</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <input class="select" type="date" id="dsrDate" aria-label="Business date">
+        <select class="select" id="dsrStation" aria-label="Station"></select>
+        <span class="pill gray" style="margin-left:auto" id="dsrStatus">—</span>
+      </div>
+      <div class="day-meta" id="dsrMeta"></div>
+      <form class="pump-grid" id="dsrPumps" novalidate></form>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Product</th><th class="num">Net sales (L)</th><th class="num">RTT (L)</th><th class="num">Avg. pump price</th><th class="num">Sales value</th></tr></thead>
+        <tbody id="dsrProducts"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ RTT ============ -->
+  <div class="page" id="page-rtt">
+    <div class="page-head">
+      <div><div class="page-title">Return to Tank (RTT)</div><div class="page-desc">Test / trial pump dispensing returned to tank — recorded separately, never counted as sales</div></div>
+      <div class="actions"><button class="btn btn-primary" data-open-modal="modalRtt" data-permission="rtt.create">+ Log RTT</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row"><select class="select" id="rttMonth" aria-label="Month"></select><select class="select" id="rttStation" aria-label="Station"></select><div class="spacer"></div><span class="muted small" id="rttSummary"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Date</th><th>Station</th><th>Pump</th><th>Product</th><th class="num">Qty (L)</th><th>Reason</th><th>Operator</th><th>Ref</th><th></th></tr></thead>
+        <tbody id="rttBody"></tbody>
+      </table></div>
+      <div class="pager" id="rttPager" hidden></div>
+      <div class="footnote">RTT increases tank stock per the configured tank-movement equation and is excluded from every sales report.</div>
+    </div>
+  </div>
+
+  <!-- ============ STOCK & DIP ============ -->
+  <div class="page" id="page-stock">
+    <div class="page-head">
+      <div><div class="page-title">Stock ledger &amp; physical dip</div><div class="page-desc">Continuous ledger — closing stock carries forward automatically as next-day opening stock</div></div>
+      <div class="actions">
+        <button class="btn" data-open-modal="modalAdjust" data-permission="stock.adjust">± Stock adjustment</button>
+        <button class="btn btn-primary" data-open-modal="modalDip" data-permission="stock.dip">+ Record physical dip</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select" id="stStation" aria-label="Station"></select>
+        <select class="select" id="stProduct" aria-label="Product"></select>
+        <input class="select" type="date" id="stDate" aria-label="Date">
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title" id="stMovementTitle">Stock movement</div></div>
+        <table>
+          <thead><tr><th class="strong">Component</th><th class="num">Litres</th></tr></thead>
+          <tbody id="stMovementBody"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Variance status by tank</div></div>
+        <div id="stTankList"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div><div class="panel-title">Full ledger — drill-down</div><div class="panel-sub" id="stLedgerSub">Every entry traces to its source receipt, sale, RTT or adjustment</div></div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Date</th><th>Product</th><th>Tank</th><th>Movement</th><th class="num">Qty (L)</th><th class="num">Running balance</th><th>Source ref</th></tr></thead>
+        <tbody id="stLedgerBody"></tbody>
+      </table></div>
+      <div class="pager" id="stLedgerPager" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ GIT ============ -->
+  <div class="page" id="page-git">
+    <div class="page-head">
+      <div><div class="page-title">Goods in Transit</div><div class="page-desc">Order → truck → in transit → arrival → discharge, including multi-delivery</div></div>
+      <div class="actions"><button class="btn btn-primary" data-open-modal="modalGit" data-permission="git.create">+ New GIT order</button></div>
+    </div>
+    <div class="panel" id="gitFeature">
+      <div class="chart-empty">Select an order below to see its delivery stages.</div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select" id="gitStatus" aria-label="Status">
+          <option value="">All statuses</option><option value="open">Open orders</option><option value="order_created">Order created</option><option value="truck_assigned">Truck assigned</option><option value="in_transit">In transit</option><option value="arrived">Arrived</option><option value="discharging">Discharging</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="exception">With exception</option>
+        </select>
+        <select class="select" id="gitStation" aria-label="Station"></select>
+        <div class="spacer"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" id="gitSearch" placeholder="Order / truck"></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Order</th><th>Truck</th><th>Product</th><th class="num">Qty (L)</th><th class="num">Order price</th><th>Destination</th><th>Status</th></tr></thead>
+        <tbody id="gitBody"></tbody>
+      </table></div>
+      <div class="pager" id="gitPager" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ CASH / POS / BANK ============ -->
+  <div class="page" id="page-cash">
+    <div class="page-head">
+      <div><div class="page-title">Cash, POS &amp; bank reconciliation</div><div class="page-desc">Expected cash vs POS collections, CIT, cash at hand and teller-wise bank deposits</div></div>
+      <div class="actions">
+        <button class="btn" id="cashReview" data-permission="cash.review" hidden>Review</button>
+        <button class="btn" id="cashCloseBtn" data-permission="cash.review" hidden>Close reconciliation</button>
+        <button class="btn" data-open-modal="modalDeclaration" data-permission="cash.record">Cash declaration</button>
+        <button class="btn btn-primary" data-open-modal="modalDeposit" data-permission="cash.record">+ Record deposit</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <input class="select" type="date" id="cashDate" aria-label="Business date">
+        <select class="select" id="cashStation" aria-label="Station"></select>
+        <span id="cashStatusPill" style="margin-left:auto"></span>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg></div></div><div class="kpi-value num" id="cashExpected">—</div><div class="kpi-label" id="cashExpectedLabel">Expected cash</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div></div><div class="kpi-value num" id="cashDeposited">—</div><div class="kpi-label">Deposited to bank</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div></div><div class="kpi-value num" id="cashCit">—</div><div class="kpi-label">CIT (undeposited)</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div></div><div class="kpi-value num" id="cashVariance">—</div><div class="kpi-label" id="cashVarianceLabel">Variance</div></div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title" id="cashDepositsTitle">Teller-wise deposits</div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="strong">Time</th><th>Bank</th><th>Teller / ref</th><th class="num">Amount</th><th>Recorded by</th><th>Status</th><th></th></tr></thead>
+          <tbody id="cashDepositsBody"></tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">Reconciliation breakdown</div><div class="panel-sub" id="cashBreakdownSub"></div></div></div>
+        <div class="kv" id="cashBreakdown"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head bordered"><div class="panel-title" id="cashHistoryTitle">Variance history</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Date</th><th class="num">Expected</th><th class="num">Deposited</th><th class="num">CIT</th><th class="num">Cash at hand</th><th class="num">Variance</th><th>Status</th></tr></thead>
+        <tbody id="cashHistoryBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ DEBTORS ============ -->
+  <div class="page" id="page-debtors">
+    <div class="page-head">
+      <div><div class="page-title">Debtors</div><div class="page-desc">Customer balances, transaction history and aging</div></div>
+      <div class="actions">
+        <button class="btn" data-action="debtor-repayment" data-permission="debtors.transact">Record repayment</button>
+        <button class="btn" data-action="debtor-credit" data-permission="debtors.transact">+ Credit sale</button>
+        <button class="btn btn-primary" data-open-modal="modalDebtor" data-permission="debtors.create">+ New debtor</button>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div></div><div class="kpi-value num" id="debtTotal">—</div><div class="kpi-label">Total outstanding</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div><div class="kpi-value num" id="debtAccounts">—</div><div class="kpi-label">Accounts</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div></div><div class="kpi-value num" style="color:#B4720B" id="debtOver60">—</div><div class="kpi-label">Over 60 days</div></div>
+      <div class="kpi"><div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div></div><div class="kpi-value num" style="color:var(--red)" id="debtOver90">—</div><div class="kpi-label">Over 90 days</div></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" id="debtSearch" placeholder="Customer name"></div>
+        <select class="select" id="debtStation" aria-label="Station"></select>
+        <select class="select" id="debtMonth" aria-label="Period"></select>
+        <div class="spacer"></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Customer</th><th>Station</th><th class="num">Opening bal.</th><th class="num">Additions</th><th class="num">Payments</th><th class="num">Closing bal.</th><th>Aging</th></tr></thead>
+        <tbody id="debtBody"></tbody>
+      </table></div>
+      <div class="pager" id="debtPager" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ EXPENSES ============ -->
+  <div class="page" id="page-expenses">
+    <div class="page-head">
+      <div><div class="page-title">Expenses</div><div class="page-desc">Narration must be selected from the controlled list — free text is restricted by policy</div></div>
+      <div class="actions"><button class="btn btn-primary" data-open-modal="modalExpense" data-permission="expenses.create">+ Log expense</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select" id="expMonth" aria-label="Month"></select>
+        <select class="select" id="expStation" aria-label="Station"></select>
+        <select class="select" id="expNarration" aria-label="Narration"></select>
+        <select class="select" id="expStatus" aria-label="Approval"><option value="">All approvals</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option></select>
+        <div class="spacer"></div><span class="muted small" id="expSummary"></span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Date</th><th>Station</th><th>Narration</th><th>Payee</th><th class="num">Amount</th><th>Approval</th><th></th></tr></thead>
+        <tbody id="expBody"></tbody>
+      </table></div>
+      <div class="pager" id="expPager" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ REPORTS ============ -->
+  <div class="page" id="page-reports">
+    <div class="page-head"><div><div class="page-title">Reports</div><div class="page-desc">Daily, monthly and management-level reports — exportable to Excel (CSV) and PDF</div></div></div>
+    <div class="panel">
+      <div class="pill-tabs" id="reportTabs"><div class="pill-tab active" data-category="daily">Daily</div><div class="pill-tab" data-category="monthly">Monthly</div><div class="pill-tab" data-category="management">Management</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Report</th><th>Filters / drill-down</th><th></th></tr></thead>
+        <tbody id="reportsBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ AUDIT ============ -->
+  <div class="page" id="page-audit">
+    <div class="page-head">
+      <div><div class="page-title">Audit trail</div><div class="page-desc">Every material amendment, approval, reopening and cancellation, with before/after values</div></div>
+      <div class="actions"><button class="btn" data-action="audit-export" data-permission="audit.export">Export</button></div>
+    </div>
+    <div class="panel">
+      <div class="filter-row">
+        <select class="select" id="auditAction" aria-label="Action"></select>
+        <select class="select" id="auditUser" aria-label="User"></select>
+        <input class="select" type="date" id="auditFrom" aria-label="From">
+        <input class="select" type="date" id="auditTo" aria-label="To">
+        <div class="spacer"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" id="auditSearch" placeholder="Record ref"></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="strong">Timestamp</th><th>User</th><th>Action</th><th>Record</th><th>Old value</th><th>New value</th></tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table></div>
+      <div class="pager" id="auditPager" hidden></div>
+    </div>
+  </div>
+
+  <!-- ============ STATION SETUP ============ -->
+  <div class="page" id="page-setup">
+    <div class="page-head">
+      <div><div class="page-title">Station setup &amp; master data</div><div class="page-desc">Stations, users, products, prices and control parameters that every module depends on</div></div>
+      <div class="actions" id="setupActions">
+        <button class="btn btn-primary" data-open-modal="modalStation" data-permission="stations.manage" data-section-action="stations">+ Register station</button>
+        <button class="btn" data-action="new-role" data-permission="roles.manage" data-section-action="users">+ New role</button>
+        <button class="btn btn-primary" data-action="new-user" data-permission="users.manage" data-section-action="users">+ New user</button>
+        <button class="btn" data-action="new-bank" data-permission="banks.manage" data-section-action="master">+ Bank</button>
+        <button class="btn" data-action="new-product" data-permission="products.manage" data-section-action="master">+ Product</button>
+        <button class="btn btn-primary" data-action="new-narration" data-permission="narrations.manage" data-section-action="master">+ Narration</button>
+      </div>
+    </div>
+
+    <div class="subnav" id="subnav-setup">
+      <button type="button" class="sub-btn active" data-page="setup" data-section="stations"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Stations</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="users"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/></svg>Users &amp; roles</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="master"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Narration list &amp; master data</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="settings"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Control settings</button>
+    </div>
+
+    <div data-setup-section="stations">
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">Stations</div><div class="panel-sub">Select a station to manage its tanks and pumps</div></div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="strong">Station</th><th>Manager</th><th class="num">Pumps</th><th>Products</th><th class="num">Cash tolerance</th><th class="num">Stock tolerance</th><th>Status</th></tr></thead>
+          <tbody id="stationsBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div data-setup-section="users" hidden>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head bordered"><div class="panel-title">Users &amp; roles</div><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input class="input" id="userSearch" placeholder="Name or username"></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="strong">Name</th><th>Role</th><th>Station</th><th>Status</th><th></th></tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table></div>
+          <div class="pager" id="usersPager" hidden></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head bordered"><div class="panel-title">Roles</div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="strong">Role</th><th class="num">Users</th><th class="num">Permissions</th><th></th></tr></thead>
+            <tbody id="rolesBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-setup-section="master" hidden>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head bordered"><div class="panel-title">Expense narration list</div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="strong">Narration</th><th>Approval threshold</th><th>Status</th><th></th></tr></thead>
+            <tbody id="narrationsBody"></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head bordered"><div class="panel-title">Products &amp; pump prices</div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="strong">Product</th><th class="num">Default price</th><th>Effective</th><th>Status</th><th></th></tr></thead>
+            <tbody id="productsBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head bordered"><div class="panel-title">Banks</div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="strong">Bank</th><th>Status</th><th></th></tr></thead>
+          <tbody id="banksBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div data-setup-section="settings" hidden>
+      <div class="panel">
+        <div class="panel-head bordered"><div><div class="panel-title">Control settings</div><div class="panel-sub">Business-configurable rules used across modules. Station tolerances are set per station.</div></div></div>
+        <form class="settings-form" id="settingsForm" novalidate>
+          <div class="form-error" hidden></div>
+          <div class="form-grid">
+            <div class="field"><label class="check"><input type="checkbox" name="allowNegativeStock"> Allow negative stock</label><div class="hint">When off, closing a day or posting an adjustment that takes a tank below zero is blocked.</div></div>
+            <div class="field"><label>GIT delay threshold (days in transit)</label><input class="input" name="gitDelayDays" data-type="number"></div>
+            <div class="field"><label>GIT shortage tolerance (litres)</label><input class="input" name="gitShortageToleranceLitres" data-type="number"></div>
+            <div class="field"><label>Debtor aging alert (days)</label><input class="input" name="debtorAgingAlertDays" data-type="number"></div>
+          </div>
+          <div style="margin-top:16px"><button class="btn btn-primary" type="submit" data-permission="settings.manage">Save settings</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<!-- MODALS -->
+<div class="overlay" id="modalTruck"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record truck receipt</div><div class="modal-close" data-close-modal="modalTruck">&times;</div></div>
+  <form class="modal-body" id="formTruck" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select" name="stationId" id="rcStation"></select></div>
+    <div class="field"><label>Product</label><select class="select" name="productId" id="rcProduct"></select></div>
+    <div class="field"><label>Receiving tank</label><select class="select" name="tankId" id="rcTank"></select></div>
+    <div class="field"><label>Receive date</label><input class="input" type="date" name="businessDate" id="rcDate"></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" name="quantity" data-type="number" inputmode="decimal" placeholder="33,000"></div>
+    <div class="field"><label>Order price</label><input class="input" name="orderPrice" data-type="number" inputmode="decimal" placeholder="₦645.00"></div>
+    <div class="field"><label>Landing / waybill price</label><input class="input" name="landingPrice" data-type="number" inputmode="decimal" placeholder="₦652.40"></div>
+    <div class="field"><label>Waybill reference</label><input class="input" name="waybillRef" placeholder="WB-88214" autocomplete="off"></div>
+    <div class="field"><label>Truck</label><input class="input" name="truckPlate" id="rcTruck" placeholder="NGR-201-KJ" autocomplete="off"></div>
+    <div class="field"><label>Linked GIT order</label><select class="select" name="gitDeliveryId" id="rcGit"><option value="">None</option></select></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalTruck">Cancel</button><button class="btn btn-primary" data-submit="formTruck">Save receipt</button></div>
+</div></div>
+
+<div class="overlay" id="modalRtt"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Log RTT</div><div class="modal-close" data-close-modal="modalRtt">&times;</div></div>
+  <form class="modal-body" id="formRtt" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select" name="stationId" id="rtStation"></select></div>
+    <div class="field"><label>Pump</label><select class="select" name="pumpId" id="rtPump"></select></div>
+    <div class="field"><label>Product</label><select class="select" id="rtProduct" disabled></select></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" name="quantity" data-type="number" inputmode="decimal" placeholder="40.0"></div>
+    <div class="field"><label>Date</label><input class="input" type="date" name="businessDate" id="rtDate"></div>
+    <div class="field"><label>&nbsp;</label><div class="hint">RTT is excluded from sales and added back to the pump's tank when the day closes.</div></div>
+    <div class="field" style="grid-column:span 2;"><label>Reason / narration</label><input class="input" name="reason" placeholder="Meter calibration test"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalRtt">Cancel</button><button class="btn btn-primary" data-submit="formRtt">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalDip"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record physical dip</div><div class="modal-close" data-close-modal="modalDip">&times;</div></div>
+  <form class="modal-body" id="formDip" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select" id="dpStation"></select></div>
+    <div class="field"><label>Tank / product</label><select class="select" name="tankId" id="dpTank"></select></div>
+    <div class="field"><label>Dip date</label><input class="input" type="date" name="businessDate" id="dpDate"></div>
+    <div class="field"><label>System closing stock</label><input class="input" readonly id="dpSystem" value=""></div>
+    <div class="field"><label>Physical dip reading</label><input class="input" name="dipLitres" data-type="number" inputmode="decimal" placeholder="70,120.0"></div>
+    <div class="field"><label>Note</label><input class="input" name="note" placeholder="Optional"></div>
+    <div class="field" style="grid-column:span 2;"><div class="hint" id="dpHint"></div></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalDip">Cancel</button><button class="btn btn-primary" data-submit="formDip">Save dip</button></div>
+</div></div>
+
+<div class="overlay" id="modalAdjust"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Stock adjustment</div><div class="modal-close" data-close-modal="modalAdjust">&times;</div></div>
+  <form class="modal-body" id="formAdjust" novalidate><div class="modal-intro">Controlled adjustments are posted to the ledger with your name and reason, and are audit logged. Use a negative quantity to remove stock.</div><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select" id="adStation"></select></div>
+    <div class="field"><label>Tank / product</label><select class="select" name="tankId" id="adTank"></select></div>
+    <div class="field"><label>Date</label><input class="input" type="date" name="businessDate" id="adDate"></div>
+    <div class="field"><label>Quantity (L, ±)</label><input class="input" name="quantity" data-type="number" inputmode="decimal" placeholder="-150"></div>
+    <div class="field" style="grid-column:span 2;"><label>Reason</label><input class="input" name="reason" placeholder="Tank calibration correction"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalAdjust">Cancel</button><button class="btn btn-primary" data-submit="formAdjust">Post adjustment</button></div>
+</div></div>
+
+<div class="overlay" id="modalGit"><div class="modal">
+  <div class="modal-head"><div class="modal-title">New GIT order</div><div class="modal-close" data-close-modal="modalGit">&times;</div></div>
+  <form class="modal-body" id="formGit" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Product</label><select class="select" name="productId" id="gtProduct"></select></div>
+    <div class="field"><label>Quantity (L)</label><input class="input" name="quantity" data-type="number" inputmode="decimal" placeholder="33,000"></div>
+    <div class="field"><label>Order price</label><input class="input" name="orderPrice" data-type="number" inputmode="decimal" placeholder="₦930.00"></div>
+    <div class="field"><label>Truck</label><input class="input" name="truckPlate" placeholder="NGR-482-XY" autocomplete="off"></div>
+    <div class="field" id="gtSingleDest"><label>Destination station</label><select class="select" name="destinationStationId" id="gtStation"></select></div>
+    <div class="field"><label>Multi-delivery?</label><select class="select" name="isMultiDelivery" id="gtMulti"><option value="false">No</option><option value="true">Yes</option></select></div>
+    <div class="field" style="grid-column:span 2;" id="gtMultiDest" hidden><label>Destinations &amp; quantities</label><div id="gtDestRows"></div><button class="btn btn-xs" type="button" id="gtAddDest">+ Add destination</button><input type="hidden" name="destinations"></div>
+    <div class="field"><label>Order date</label><input class="input" type="date" name="orderDate" id="gtDate"></div>
+    <div class="field"><label>Loading depot / source</label><input class="input" name="source" placeholder="Lagos Apapa depot"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalGit">Cancel</button><button class="btn btn-primary" data-submit="formGit">Create order</button></div>
+</div></div>
+
+<div class="overlay" id="modalDeposit"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Record bank deposit</div><div class="modal-close" data-close-modal="modalDeposit">&times;</div></div>
+  <form class="modal-body" id="formDeposit" novalidate><div class="modal-intro" id="depositIntro"></div><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Bank</label><select class="select" name="bankId" id="depBank"></select></div>
+    <div class="field"><label>Teller / deposit ref</label><input class="input" name="tellerRef" placeholder="TLR-88215" autocomplete="off"></div>
+    <div class="field"><label>Amount</label><input class="input" name="amount" data-type="number" inputmode="decimal" placeholder="₦1,800,000"></div>
+    <div class="field"><label>Time of deposit</label><input class="input" type="time" name="depositTime"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalDeposit">Cancel</button><button class="btn btn-primary" data-submit="formDeposit">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalDeclaration"><div class="modal">
+  <div class="modal-head"><div class="modal-title">End-of-day cash declaration</div><div class="modal-close" data-close-modal="modalDeclaration">&times;</div></div>
+  <form class="modal-body" id="formDeclaration" novalidate><div class="modal-intro" id="declarationIntro"></div><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>POS collections</label><input class="input" name="posAmount" data-type="number" inputmode="decimal" placeholder="₦0"></div>
+    <div class="field"><label>Cash in transit (collected, not banked)</label><input class="input" name="closingCit" data-type="number" inputmode="decimal" placeholder="₦0"></div>
+    <div class="field"><label>Cash at hand (counted)</label><input class="input" name="cashAtHand" data-type="number" inputmode="decimal" placeholder="₦0"></div>
+    <div class="field"><label>Notes</label><input class="input" name="notes" placeholder="Optional"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalDeclaration">Cancel</button><button class="btn btn-primary" data-submit="formDeclaration">Save declaration</button></div>
+</div></div>
+
+<div class="overlay" id="modalDebtor"><div class="modal">
+  <div class="modal-head"><div class="modal-title">New debtor</div><div class="modal-close" data-close-modal="modalDebtor">&times;</div></div>
+  <form class="modal-body" id="formDebtor" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Customer name</label><input class="input" name="name" placeholder="Sahel Logistics" autocomplete="off"></div>
+    <div class="field"><label>Station</label><select class="select" name="stationId" id="dbStation"></select></div>
+    <div class="field"><label>Opening balance</label><input class="input" name="openingBalance" data-type="number" inputmode="decimal" placeholder="₦0"></div>
+    <div class="field"><label>Opening balance date</label><input class="input" type="date" name="openingDate" id="dbDate"></div>
+    <div class="field"><label>Phone</label><input class="input" name="phone" placeholder="Optional"></div>
+    <div class="field"><label>Credit limit</label><input class="input" name="creditLimit" data-type="number" inputmode="decimal" placeholder="No limit"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalDebtor">Cancel</button><button class="btn btn-primary" data-submit="formDebtor">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalExpense"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Log expense</div><div class="modal-close" data-close-modal="modalExpense">&times;</div></div>
+  <form class="modal-body" id="formExpense" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station</label><select class="select" name="stationId" id="exStation"></select></div>
+    <div class="field"><label>Narration</label><select class="select" name="narrationId" id="exNarration"></select></div>
+    <div class="field"><label>Amount</label><input class="input" name="amount" data-type="number" inputmode="decimal" placeholder="₦45,000"></div>
+    <div class="field"><label>Payee</label><input class="input" name="payee" placeholder="Station float"></div>
+    <div class="field"><label>Date</label><input class="input" type="date" name="businessDate" id="exDate"></div>
+    <div class="field"><label>Paid by</label><select class="select" name="paymentMethod"><option value="cash">Cash (station float)</option><option value="transfer">Bank transfer</option></select></div>
+    <div class="field"><label>Reference</label><input class="input" name="reference" placeholder="Optional"></div>
+    <div class="field"><label>Note</label><input class="input" name="note" placeholder="Optional"></div>
+    <div class="field" style="grid-column:span 2;"><div class="hint" id="exHint"></div></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalExpense">Cancel</button><button class="btn btn-primary" data-submit="formExpense">Save</button></div>
+</div></div>
+
+<div class="overlay" id="modalStation"><div class="modal">
+  <div class="modal-head"><div class="modal-title">Register station</div><div class="modal-close" data-close-modal="modalStation">&times;</div></div>
+  <form class="modal-body" id="formStation" novalidate><div class="form-error" hidden></div><div class="form-grid">
+    <div class="field"><label>Station name</label><input class="input" name="name" placeholder="Abuja – Wuse"></div>
+    <div class="field"><label>Station code</label><input class="input" name="code" placeholder="AW" maxlength="10"></div>
+    <div class="field"><label>Manager</label><select class="select" name="managerUserId" id="stManager"></select></div>
+    <div class="field"><label>Address</label><input class="input" name="address" placeholder="Optional"></div>
+    <div class="field"><label>Cash tolerance</label><input class="input" name="cashTolerance" data-type="number" inputmode="decimal" placeholder="₦20,000"></div>
+    <div class="field"><label>Stock tolerance</label><input class="input" name="stockTolerance" data-type="number" inputmode="decimal" placeholder="±300L"></div>
+  </div><button type="submit" hidden></button></form>
+  <div class="modal-foot"><button class="btn" data-close-modal="modalStation">Cancel</button><button class="btn btn-primary" data-submit="formStation">Save</button></div>
+</div></div>
+
+<div class="overlay" id="dynamicModal"><div class="modal"></div></div>
+</div><!-- /content -->
+</main>
+</div><!-- /app-shell -->
+</div><!-- /appShell -->
+
+<div id="toastHost" style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;flex-direction:column;gap:8px;"></div>
+<div id="printArea"></div>
+</body>
+</html>
