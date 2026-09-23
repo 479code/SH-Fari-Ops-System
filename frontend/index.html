@@ -124,72 +124,76 @@
 
   <!-- ============ DASHBOARD ============ -->
   <div class="page active" id="page-dashboard">
-    <div class="page-head">
-      <div><div class="page-title">Dashboard</div><div class="page-desc" id="dashDesc">Month to date, approved records only</div></div>
-      <div class="actions">
-        <select class="select" id="dashStation" aria-label="Station"></select>
-        <button class="btn" data-action="dash-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Export</button>
-        <button class="btn btn-primary" data-action="dash-compare">Station comparison</button>
+    <section class="network">
+      <div class="network-main">
+        <div class="network-top">
+          <div class="network-title"><h1>Network overview</h1><p id="netSub">—</p></div>
+          <div class="network-stat"><label>Sales MTD</label><strong id="netSales">—</strong><small id="netSalesDelta" hidden></small></div>
+          <div class="network-stat"><label>Stock on hand</label><strong id="netStock">—</strong><small class="muted" id="netStockSub"></small></div>
+          <div class="network-stat"><label>Outstanding debt</label><strong id="netDebt">—</strong><small class="muted" id="netDebtSub"></small></div>
+          <div class="network-stat"><label>Net profit MTD</label><strong id="netProfit">—</strong><small id="netProfitDelta" hidden></small></div>
+        </div>
+        <div class="station-switcher" id="stationSwitcher" role="group" aria-label="Select station"></div>
       </div>
+      <div class="network-map">
+        <div class="eyebrow">STATION NETWORK</div>
+        <div class="route-schematic" id="routeSchematic"></div>
+        <small id="netStationCount"></small>
+      </div>
+    </section>
+
+    <div class="twin-layout">
+      <div class="twin-main">
+        <div class="twin-panel">
+          <div class="station-header">
+            <div><h2 id="twinStationName">—<span class="dot"></span></h2><p class="sub" id="twinStationSub">Station overview</p></div>
+            <div class="page-actions">
+              <button class="btn btn-primary btn-xs" data-action="twin-receipt" data-permission="receipts.create"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0"/></svg>Record receipt</button>
+              <button class="btn btn-xs" id="twinLedgerLink"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></svg>View ledger</button>
+            </div>
+          </div>
+          <div class="tabs station-tabs"><span class="tab active">Station twin</span></div>
+          <div class="station-canvas" id="twinCanvasWrap"><div id="twinCanvas"></div></div>
+          <div class="station-plain" id="twinOverflow" hidden></div>
+          <div class="twin-legend">
+            <div class="row"><span><i class="legend-dot"></i>System stock</span><span><i class="legend-dot physical"></i>Physical dip</span><span><i class="legend-dot variance"></i>Variance</span></div>
+            <span>Illustrative equipment · Real readings</span>
+          </div>
+        </div>
+        <div class="stock-equation" id="twinEquation" hidden></div>
+        <div class="delivery-journey" id="twinJourney" hidden></div>
+      </div>
+
+      <aside class="attention-panel">
+        <div class="attention-heading"><h2>Needs attention</h2><span class="attention-count" id="dashExceptionCount">0</span></div>
+        <div class="attention-list" id="dashExceptions"></div>
+        <div class="day-control" id="dayControl"></div>
+      </aside>
     </div>
 
-    <div class="kpi-grid">
-      <div class="kpi">
-        <div class="kpi-top"><div class="kpi-chip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><span class="kpi-more">⋯</span></div>
-        <div class="kpi-value num" id="kpiSales">—</div><div class="kpi-label">Sales MTD</div>
-        <div class="kpi-delta up" id="kpiSalesDelta" hidden></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/></svg></div><span class="kpi-more">⋯</span></div>
-        <div class="kpi-value num" id="kpiStock">—</div><div class="kpi-label">Stock value on hand</div>
-        <div class="kpi-delta up" style="background:#EEF1F3;color:var(--text-2)" id="kpiStockSub"></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div><span class="kpi-more">⋯</span></div>
-        <div class="kpi-value num" id="kpiDebt">—</div><div class="kpi-label">Outstanding debt</div>
-        <div class="kpi-delta down" id="kpiDebtSub" hidden></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-top"><div class="kpi-chip green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div><span class="kpi-more">⋯</span></div>
-        <div class="kpi-value num" id="kpiProfit">—</div><div class="kpi-label">Net profit MTD</div>
-        <div class="kpi-delta up" id="kpiProfitDelta" hidden></div>
-      </div>
+    <div class="dashboard-bottom">
+      <section class="surface">
+        <div class="surface-head border"><div><h2>Sales trend</h2><p class="sub" id="trendSub">Last 8 weeks · ₦</p></div></div>
+        <div class="surface-body" id="salesTrendChart"><div class="chart-empty"><span class="spinner dark"></span>Loading…</div></div>
+      </section>
+      <section class="surface">
+        <div class="surface-head border"><div><h2>Sales by station</h2><p class="sub">Month to date</p></div><span class="badge info" id="netStationBadge"></span></div>
+        <div class="surface-body" id="salesByStation"></div>
+        <div class="surface-footer"><span>Approved sales days only</span><button type="button" class="link" data-action="dash-compare">Station comparison <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      </section>
     </div>
 
-    <div class="two-col">
+    <div class="spaced">
       <div class="panel">
         <div class="panel-head bordered">
-          <div><div class="panel-title">Sales trend — last 8 weeks</div><div class="panel-sub" id="trendSub">Closed sales days, ₦</div></div>
-          <select class="select" aria-label="Interval"><option>Weekly</option></select>
+          <div><div class="panel-title">Station-level summary</div><div class="panel-sub" id="stationSummaryMonth">Last closed month</div></div>
+          <button class="btn" data-action="dash-export"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Export</button>
         </div>
-        <div class="area-chart" id="salesTrendChart"><div class="chart-empty"><span class="spinner dark"></span>Loading…</div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Trucks recv.</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Debt</th><th class="num">GIT</th></tr></thead>
+          <tbody id="stationSummaryBody"></tbody>
+        </table></div>
       </div>
-      <div class="panel">
-        <div class="panel-head bordered"><div><div class="panel-title">GIT status</div><div class="panel-sub">By outstanding volume</div></div></div>
-        <div class="donut-wrap"><div id="gitDonut"></div><div class="donut-legend" id="gitLegend"></div></div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div class="panel">
-        <div class="panel-head bordered">
-          <div><div class="panel-title">Exceptions requiring attention</div><div class="panel-sub">Cash and stock variances beyond tolerance, delays and aging</div></div>
-          <span class="pill red" id="dashExceptionCount">0 open</span>
-        </div>
-        <div id="dashExceptions"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head bordered"><div><div class="panel-title">Sales by station — MTD</div></div></div>
-        <div style="padding:8px 0;" id="salesByStation"></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head bordered"><div><div class="panel-title">Station-level summary</div><div class="panel-sub" id="stationSummaryMonth">Last closed month</div></div></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Trucks recv.</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Debt</th><th class="num">GIT</th></tr></thead>
-        <tbody id="stationSummaryBody"></tbody>
-      </table></div>
     </div>
   </div>
 
@@ -238,6 +242,8 @@
         <span class="pill gray" style="margin-left:auto" id="dsrStatus">—</span>
       </div>
       <div class="day-meta" id="dsrMeta"></div>
+      <div class="station-canvas dsr-canvas" id="dsrCanvasWrap"><div id="dsrCanvas"></div></div>
+      <div class="station-plain" id="dsrOverflow" hidden></div>
       <form class="pump-grid" id="dsrPumps" novalidate></form>
       <div class="table-wrap"><table>
         <thead><tr><th class="strong">Product</th><th class="num">Net sales (L)</th><th class="num">RTT (L)</th><th class="num">Avg. pump price</th><th class="num">Sales value</th></tr></thead>

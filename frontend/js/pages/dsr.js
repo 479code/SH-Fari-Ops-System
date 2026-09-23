@@ -43,6 +43,39 @@ function productRow(p) {
   return html`<tr${p.total ? html` style="font-weight:700"` : ""}><td class="strong">${p.productCode}</td><td class="num">${litres(p.netSales)}</td><td class="num">${litres(p.rtt)}</td><td class="num">${p.avgPrice === null || p.avgPrice === undefined ? "—" : price(p.avgPrice)}</td><td class="num">${naira(p.salesValue)}</td></tr>`;
 }
 
+function assetLabel(cls, name, value, extra = "") {
+  return html`<div class="asset-label ${cls}"><span class="label-name">${name}</span><span class="label-value">${value}</span>${extra}</div>`;
+}
+
+function renderPumpIllustration() {
+  const shown = day.readings.slice(0, 3);
+  const overflow = day.readings.slice(3);
+
+  const pumpBlocks = shown.map((r, i) => {
+    const value = r.netSales === null ? "—" : `${litres(r.netSales)} L`;
+    return assetLabel(`pump-label p${i + 1}`, `${r.pumpName} · ${r.productCode}`, value, r.closingReading === null ? html`<small>No closing reading yet</small>` : "");
+  });
+  setHtml(
+    $("#dsrCanvas"),
+    day.readings.length
+      ? html`<img class="station-scene" src="/assets/station-scene.jpg" alt="Illustrative pump layout for this station">${pumpBlocks}`
+      : html`<div class="chart-empty">No active pumps at this station — register pumps in Setup.</div>`,
+  );
+
+  const overflowEl = $("#dsrOverflow");
+  if (!overflow.length) {
+    overflowEl.hidden = true;
+  } else {
+    overflowEl.hidden = false;
+    setHtml(
+      overflowEl,
+      html`<div class="plain-note">Beyond the illustration's 3 fixed pump slots:</div><div class="plain-grid">${overflow.map(
+        (r) => html`<div class="plain-card"><label>${r.pumpName} · ${r.productCode}</label><strong>${r.netSales === null ? "—" : `${litres(r.netSales)} L`}</strong><div class="hint">Net sales today</div></div>`,
+      )}</div>`,
+    );
+  }
+}
+
 function render() {
   const [color, label] = STATUS[day.status];
   const pill = $("#dsrStatus");
@@ -69,6 +102,8 @@ function render() {
   }
   $("#dsrMeta").textContent = meta;
 
+  renderPumpIllustration();
+
   setHtml(
     $("#dsrPumps"),
     day.readings.length
@@ -90,6 +125,8 @@ async function load() {
   } catch (err) {
     day = null;
     setHtml($("#dsrPumps"), html``);
+    setHtml($("#dsrCanvas"), html``);
+    $("#dsrOverflow").hidden = true;
     tableError($("#dsrProducts"), 5, err, load);
   }
 }

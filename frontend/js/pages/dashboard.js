@@ -1,19 +1,44 @@
-/** Dashboard — consolidated KPIs, trend, GIT status, exceptions and station summaries. */
+/**
+ * Dashboard — network-wide overview plus a per-station "twin": a real-data
+ * drill-down (stock equation, pump/tank readings, featured GIT delivery,
+ * today's DSR control) for whichever station is selected in the switcher.
+ *
+ * The station illustration is only shown for a station whose actual pump/tank
+ * configuration fits the illustration's fixed hotspot slots (max 3 pumps; at
+ * most one PMS tank and one AGO tank). Any other station gets a plain, still
+ * fully real, data panel instead — the picture never stands in for numbers
+ * it can't actually represent.
+ */
 import { api } from "../api/client.js";
 import { $, html, raw, setHtml } from "../core/dom.js";
-import { areaChart, bars, donut } from "../core/charts.js";
+import { areaChart, bars } from "../core/charts.js";
 import { exceptionPill, openException } from "../core/exceptions.js";
-import { stationOptions } from "../core/filters.js";
+import { pumpsFor, tanksFor } from "../core/filters.js";
 import { monthLabel, naira, number, pct, recentMonths } from "../core/format.js";
+import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
-import { boundStation, currentMonth, state } from "../core/state.js";
+import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
 import { fillTable, infoModal, tableError, tableLoading, toastError } from "../core/ui.js";
 
-const GIT_COLORS = { order_created: "#7C5CFC", truck_assigned: "#7C5CFC", in_transit: "#316D9C", arrived: "#EDB243", discharging: "#21805B" };
-const ICON_WARN = raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>');
-const ICON_CLOCK = raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>');
+const ICON_PATHS = {
+  station: "M3 7h18V3H3zM5 7v14M19 7v14M2 21h20M9 11h6v10H9zM10 14h4",
+  truck: "M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0",
+  drop: "M12 2s-7 8-7 13a7 7 0 0 0 14 0c0-5-7-13-7-13z",
+  alert: "M12 3 2 21h20zM12 9v5M12 17v1",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v6l4 2",
+  lock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4M12 15v3",
+  unlock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0M12 15v3",
+  check: "M4 12l5 5L21 5",
+  external: "M7 17 19 5M8 5h11v11M4 8v12h12",
+  arrow: "M5 12h14M13 6l6 6-6 6",
+};
+const ico = (name, cls = "") => raw(`<svg class="ico ${cls}" viewBox="0 0 24 24">${`<path d="${ICON_PATHS[name]}"/>`}</svg>`);
+const signed = (v) => `${v >= 0 ? "+" : ""}${number(v)}`;
 
+let stationId = null;
 let exceptionItems = [];
+
+/* ---------------------------------------------------------------- Network */
 
 function delta(el, value) {
   if (value === null || value === undefined) {
@@ -21,8 +46,8 @@ function delta(el, value) {
     return;
   }
   el.hidden = false;
-  el.className = `kpi-delta ${value >= 0 ? "up" : "down"}`;
-  setHtml(el, html`${value >= 0 ? "▲" : "▼"} ${pct(value)}<span class="muted">vs last month</span>`);
+  el.className = value >= 0 ? "green" : "red";
+  setHtml(el, html`${value >= 0 ? "▲" : "▼"} ${pct(value)} vs last month`);
 }
 
 function summaryRow(r) {
@@ -34,45 +59,295 @@ function withTotals(summary) {
 }
 
 function exceptionRow(item, index) {
-  const amber = item.severity === "medium";
-  return html`<div class="exception-row clickable" data-exception-index="${index}"><div class="exc-ico ${amber ? "amber" : ""}">${amber ? ICON_CLOCK : ICON_WARN}</div><div class="exc-body"><div class="exc-title">${item.title}</div><div class="exc-meta">${item.detail ?? ""}</div></div>${exceptionPill(item)}</div>`;
+  const amber = item.type === "git_delay" || item.type === "debtor_aging";
+  const icon = item.type === "stock_variance" ? "drop" : item.type === "git_delay" ? "clock" : "alert";
+  return html`<div class="exception-item clickable" data-exception-index="${index}"><span class="exception-icon ${amber ? "warn" : ""}">${ico(icon)}</span><div><b>${item.title}</b><p>${item.detail ?? ""}</p>${exceptionPill(item)}</div></div>`;
 }
 
-function render(data) {
+function renderNetworkMap() {
+  const stations = state.lookups?.stations ?? [];
+  setHtml(
+    $("#routeSchematic"),
+    html`${stations
+      .slice(0, 3)
+      .map((s) => html`<div class="route-node">${s.name}</div>`)}`,
+  );
+  $("#netStationCount").textContent = `Schematic · ${stations.length} station${stations.length === 1 ? "" : "s"}`;
+}
+
+function renderNetwork(data) {
   const k = data.kpis;
-  $("#kpiSales").textContent = naira(k.salesMtd, { compact: true });
-  delta($("#kpiSalesDelta"), k.salesDeltaPct);
-  $("#kpiStock").textContent = naira(k.stockValue, { compact: true });
-  setHtml($("#kpiStockSub"), html`${number(k.stockLitres)} L<span class="muted">${k.stockStations} station${k.stockStations === 1 ? "" : "s"}</span>`);
-  $("#kpiDebt").textContent = naira(k.outstandingDebt, { compact: true });
-  const debtSub = $("#kpiDebtSub");
-  debtSub.hidden = false;
-  debtSub.className = `kpi-delta ${k.debtAccountsOver60 > 0 ? "down" : "up"}`;
-  setHtml(debtSub, k.debtAccountsOver60 > 0 ? html`▲ ${k.debtAccountsOver60} acct${k.debtAccountsOver60 === 1 ? "" : "s"}<span class="muted">over 60 days</span>` : html`None<span class="muted">over 60 days</span>`);
-  $("#kpiProfit").textContent = naira(k.netProfitMtd, { compact: true });
-  delta($("#kpiProfitDelta"), k.netProfitDeltaPct);
+  const stations = state.lookups?.stations.length ?? 0;
+  $("#netSub").textContent = `${stations} station${stations === 1 ? "" : "s"} · ${monthLabel(data.period.month)} month to date`;
 
-  const stations = data.salesByStation.length;
-  $("#dashDesc").textContent = `${stations > 1 ? `Consolidated across ${stations} stations` : (data.salesByStation[0]?.stationName ?? "No stations")} — month to date, approved records only`;
-  setHtml($("#salesTrendChart"), areaChart(data.salesTrend, { partialLast: true }));
-  $("#trendSub").textContent = `${stations > 1 ? "All stations combined" : "Closed sales days"}, ₦ — current week to date shown dashed`;
-
-  const segments = data.gitStatus.map((g) => ({ label: g.label, value: g.litres, color: GIT_COLORS[g.status] }));
-  const chart = donut(segments);
-  setHtml($("#gitDonut"), chart.svg);
-  setHtml($("#gitLegend"), html`${chart.legend}`);
+  $("#netSales").textContent = naira(k.salesMtd, { compact: true });
+  delta($("#netSalesDelta"), k.salesDeltaPct);
+  $("#netStock").textContent = naira(k.stockValue, { compact: true });
+  $("#netStockSub").textContent = `${number(k.stockLitres)} L · ${k.stockStations} station${k.stockStations === 1 ? "" : "s"}`;
+  $("#netDebt").textContent = naira(k.outstandingDebt, { compact: true });
+  $("#netDebtSub").textContent = k.debtAccountsOver60 > 0 ? `${k.debtAccountsOver60} acct${k.debtAccountsOver60 === 1 ? "" : "s"} over 60 days` : "None over 60 days";
+  $("#netProfit").textContent = naira(k.netProfitMtd, { compact: true });
+  delta($("#netProfitDelta"), k.netProfitDeltaPct);
 
   exceptionItems = data.exceptions.items;
-  $("#dashExceptionCount").textContent = `${data.exceptions.open} open`;
+  $("#dashExceptionCount").textContent = data.exceptions.open;
   setHtml(
     $("#dashExceptions"),
     exceptionItems.length ? html`${exceptionItems.map(exceptionRow)}` : html`<div class="chart-empty">No open exceptions — all variances are within tolerance.</div>`,
   );
 
+  $("#trendSub").textContent = `Last 8 weeks · ₦ · ${stations > 1 ? "all stations" : "closed sales days"}`;
+  setHtml($("#salesTrendChart"), areaChart(data.salesTrend, { partialLast: true }));
+  $("#netStationBadge").textContent = `${data.salesByStation.length} station${data.salesByStation.length === 1 ? "" : "s"}`;
   setHtml($("#salesByStation"), bars(data.salesByStation.map((s) => ({ label: s.stationName, value: s.value }))));
 
   $("#stationSummaryMonth").textContent = `${monthLabel(data.stationSummary.month)} — last closed month`;
   fillTable($("#stationSummaryBody"), 8, withTotals(data.stationSummary), summaryRow, "No stations to summarise.");
+}
+
+async function loadNetwork() {
+  tableLoading($("#stationSummaryBody"), 8);
+  try {
+    const { data } = await api.get("/dashboard", {});
+    renderNetwork(data);
+  } catch (err) {
+    toastError(err);
+    tableError($("#stationSummaryBody"), 8, err, loadNetwork);
+    setHtml($("#salesTrendChart"), html`<div class="chart-empty">${err.message}</div>`);
+  }
+}
+
+/* -------------------------------------------------------------- Switcher */
+
+function renderSwitcher() {
+  const stations = state.lookups?.stations ?? [];
+  setHtml(
+    $("#stationSwitcher"),
+    html`${stations.map(
+      (s) =>
+        html`<button type="button" class="station-option ${s.id === stationId ? "active" : ""}" data-station="${s.id}" aria-pressed="${s.id === stationId}">${ico("station")}<span><b>${s.name}</b><small>${s.code}</small></span></button>`,
+    )}`,
+  );
+}
+
+/* ------------------------------------------------------------------ Twin */
+
+function assetLabel(cls, name, value, extra = "") {
+  return html`<div class="asset-label ${cls}"><span class="label-name">${name}</span><span class="label-value">${value}</span>${raw(extra)}</div>`;
+}
+
+function tankVarianceBlock(movement) {
+  if (!movement || movement.physicalDip === null || movement.physicalDip === undefined) {
+    return html`<small>Awaiting today's dip</small>`;
+  }
+  const within = Math.abs(movement.variance) <= movement.tolerance;
+  return html`<span class="reading-line"><span>System</span><b>${number(movement.closing)} L</b></span><span class="reading-line"><span>Dip</span><b>${number(movement.physicalDip)} L</b></span><span class="variance-label">${ico(within ? "check" : "alert")}${within ? `Within ±${number(movement.tolerance)} L tolerance` : `${signed(movement.variance)} L · Above tolerance`}</span>`;
+}
+
+/** The illustration has 3 fixed pump slots and one PMS + one AGO tank slot —
+ * that's baked into the artwork. Whatever a station actually has beyond that
+ * (a 4th+ pump, a second tank of the same product, any other product) still
+ * gets shown, just as a plain real-numbers list alongside the picture rather
+ * than forced onto a hotspot position that doesn't exist for it. */
+function splitForIllustration(sId) {
+  const pumps = pumpsFor(sId);
+  const tanks = tanksFor(sId)
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const pms = tanks.find((t) => t.productCode === "PMS");
+  const ago = tanks.find((t) => t.productCode === "AGO");
+  const shownTanks = [pms, ago].filter(Boolean);
+  const shownIds = new Set(shownTanks.map((t) => t.id));
+  return {
+    shownPumps: pumps.slice(0, 3),
+    overflowPumps: pumps.slice(3),
+    shownTanks,
+    overflowTanks: tanks.filter((t) => !shownIds.has(t.id)),
+  };
+}
+
+async function renderTwin(shownPumps, movementsById, dsrDay, receipt) {
+  const pumpReadings = dsrDay?.readings ?? [];
+  const pumpBlocks = shownPumps.map((p, i) => {
+    const reading = pumpReadings.find((r) => r.pumpName === p.name);
+    const value = reading?.netSales != null ? `${number(reading.netSales)} L` : "—";
+    return assetLabel(`pump-label p${i + 1}`, `${p.name} · ${p.productCode}`, value, reading ? "" : "<small>No reading today</small>");
+  });
+
+  const receiptBlock = receipt
+    ? assetLabel("receipt-label", receipt.waybillRef, `${number(receipt.quantity)} L ${receipt.productCode}`, `<small class="green">✓ Verified receipt</small>`)
+    : "";
+
+  const tankBlocks = ["PMS", "AGO"].map((code) => {
+    const m = movementsById.get(code);
+    if (!m) return "";
+    const cls = code === "PMS" ? "tank-label pms" : "tank-label ago";
+    return html`<div class="${cls}"><span class="label-name">${code} · ${m.tankName ?? "Tank"}</span><span class="label-value">${number(m.closing)} L</span>${tankVarianceBlock(m)}</div>`;
+  });
+
+  setHtml(
+    $("#twinCanvas"),
+    html`<img class="station-scene" src="/assets/station-scene.jpg" alt="Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks">${receiptBlock}${pumpBlocks}${tankBlocks}`,
+  );
+}
+
+function renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay) {
+  const el = $("#twinOverflow");
+  if (!overflowPumps.length && !overflowTanks.length) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const pumpReadings = dsrDay?.readings ?? [];
+  const cards = [
+    ...overflowTanks.map((t) => {
+      const m = movementsByTankId.get(t.id);
+      const noDip = !m || m.physicalDip === null || m.physicalDip === undefined;
+      const within = !noDip && Math.abs(m.variance) <= m.tolerance;
+      return html`<div class="plain-card"><label>${t.productCode} · ${t.name}</label><strong>${m ? `${number(m.closing)} L` : "—"}</strong><div class="hint">${noDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signed(m.variance)} L variance`}</div></div>`;
+    }),
+    ...overflowPumps.map((p) => {
+      const r = pumpReadings.find((x) => x.pumpName === p.name);
+      return html`<div class="plain-card"><label>${p.name} · ${p.productCode}</label><strong>${r?.netSales != null ? `${number(r.netSales)} L` : "—"}</strong><div class="hint">Net sales today</div></div>`;
+    }),
+  ];
+  setHtml(
+    el,
+    html`<div class="plain-note">Beyond what the illustration's fixed hotspots can show:</div><div class="plain-grid">${cards}</div>`,
+  );
+}
+
+function renderEquation(movement) {
+  const el = $("#twinEquation");
+  if (!movement) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const items = [
+    ["Opening", number(movement.opening)],
+    ["Receipts", number(movement.receipts)],
+    ["Sales", number(movement.dispensed)],
+    ["RTT", number(movement.rtt)],
+    ["Adj.", signed(movement.adjustments)],
+    ["System", `${number(movement.closing)} L`],
+  ];
+  setHtml(
+    el,
+    html`<div class="equation-title">Stock position<br><span class="muted">${movement.productCode} · ${movement.tankName ?? "primary tank"}</span></div>${items.map(
+      ([label, value], i) => html`${i ? html`<span>${["", "+", "−", "+", "±", "="][i]}</span>` : ""}<div class="equation-item ${i === 5 ? "total" : ""}"><label>${label}</label><strong class="num">${value}</strong></div>`,
+    )}`,
+  );
+}
+
+const STAGES = [
+  ["order_created", "Order"],
+  ["truck_assigned", "Assigned"],
+  ["in_transit", "In transit"],
+  ["arrived", "Arrived"],
+  ["discharging", "Discharge"],
+  ["completed", "Completed"],
+];
+
+function renderJourney(order) {
+  const el = $("#twinJourney");
+  if (!order) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const currentIndex = STAGES.findIndex(([s]) => s === order.status);
+  setHtml(
+    el,
+    html`<div class="journey-ref">${ico("truck")}<div><small>GIT journey</small><b>${order.ref} · ${order.productCode} · ${number(order.quantity)} L</b></div></div><div class="journey-steps">${STAGES.map(
+      ([s, label], i) => html`<div class="journey-step ${i < currentIndex ? "done" : i === currentIndex ? "current" : ""}"><span class="step-dot">${i < currentIndex ? "✓" : i === currentIndex ? "•" : ""}</span>${label}</div>`,
+    )}</div><button type="button" class="link" data-action="journey-open" data-id="${order.id}">${order.delayed ? `${order.daysInTransit} days · Delayed` : order.statusLabel} ${ico("arrow")}</button>`,
+  );
+}
+
+function renderDayControl(dsrDay) {
+  const el = $("#dayControl");
+  if (!can("dsr.view")) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  if (!dsrDay?.day) {
+    setHtml(
+      el,
+      html`<h3>${ico("unlock")}Daily sales control</h3><small>${dsrDay?.openBlocker ?? "This business day has not been opened yet."}</small><button type="button" class="btn" data-action="open-dsr">Open day ${ico("arrow")}</button>`,
+    );
+    return;
+  }
+  const locked = dsrDay.status === "closed";
+  setHtml(
+    el,
+    html`<h3>${ico(locked ? "lock" : "unlock")}Daily sales control</h3><div><strong class="num">${number(dsrDay.totals.netSales)} L</strong><strong class="day-money num">${naira(dsrDay.totals.salesValue)}</strong></div><small>RTT of ${number(dsrDay.totals.rtt)} L excluded</small><button type="button" class="btn" data-action="open-dsr">${locked ? "View locked day" : "Review & close day"} ${ico("arrow")}</button>`,
+  );
+}
+
+async function loadTwin() {
+  const stations = state.lookups?.stations ?? [];
+  const station = stations.find((s) => s.id === stationId);
+  if (!station) return;
+
+  $("#twinStationName").textContent = station.name;
+  $("#twinStationSub").textContent = `Station overview · ${station.code}`;
+  renderSwitcher();
+
+  const { shownPumps, overflowPumps, shownTanks, overflowTanks } = splitForIllustration(stationId);
+  const allTanks = [...shownTanks, ...overflowTanks];
+  const date = today();
+
+  const [dsrDay, receiptRows, movements, gitRows] = await Promise.all([
+    api
+      .get("/dsr/day", { stationId, date })
+      .then((r) => r.data)
+      .catch(() => null),
+    api
+      .get("/receipts", { stationId, status: "verified", sortOrder: "desc", limit: 1 })
+      .then((r) => r.data)
+      .catch(() => []),
+    Promise.all(
+      allTanks.map((t) =>
+        api
+          .get("/stock/movement", { stationId, productId: t.productId, date })
+          .then((r) => r.data)
+          .catch(() => null),
+      ),
+    ),
+    api
+      .get("/git-orders", { stationId, status: "open", limit: 5 })
+      .then((r) => r.data)
+      .catch(() => []),
+  ]);
+
+  const movementsByTankId = new Map();
+  const movementsByProduct = new Map();
+  allTanks.forEach((t, i) => {
+    if (!movements[i]) return;
+    movementsByTankId.set(t.id, movements[i]);
+    if (!movementsByProduct.has(t.productCode)) movementsByProduct.set(t.productCode, movements[i]);
+  });
+
+  await renderTwin(shownPumps, movementsByProduct, dsrDay, receiptRows[0] ?? null);
+  renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay);
+
+  const equationTank = shownTanks[0] ?? overflowTanks[0] ?? null;
+  renderEquation(equationTank ? movementsByTankId.get(equationTank.id) : null);
+
+  const orders = gitRows ?? [];
+  const featured = orders.find((o) => o.delayed) ?? orders.find((o) => o.status === "in_transit") ?? orders[0] ?? null;
+  renderJourney(featured);
+
+  renderDayControl(dsrDay);
+}
+
+function selectStation(id) {
+  if (id === stationId) return;
+  stationId = id;
+  renderSwitcher();
+  loadTwin();
 }
 
 function compareRow(r) {
@@ -84,8 +359,7 @@ function openComparison() {
   infoModal({
     title: "Station comparison",
     content: html`<div style="margin-bottom:12px"><select class="select" data-compare-month>${months.map((m) => html`<option value="${m.value}">${m.label}</option>`)}</select></div>
-      <div class="table-wrap"><table><thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Cost of sales</th><th class="num">Gross profit</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Closing stock</th><th class="num">Debt</th><th class="num">GIT (L)</th></tr></thead><tbody data-compare-body></tbody></table></div>
-      <div class="hint" style="margin-top:10px">Approved records only. Debt and stock as of month end; GIT is the current outstanding quantity.</div>`,
+      <div class="table-wrap"><table><thead><tr><th class="strong">Station</th><th class="num">Sold (L)</th><th class="num">Sales value</th><th class="num">Cost of sales</th><th class="num">Gross profit</th><th class="num">Expenses</th><th class="num">Net profit</th><th class="num">Closing stock</th><th class="num">Debt</th><th class="num">GIT (L)</th></tr></thead><tbody data-compare-body></tbody></table></div>`,
     onRender: (form) => {
       const select = form.querySelector("[data-compare-month]");
       const body = form.querySelector("[data-compare-body]");
@@ -109,35 +383,37 @@ export default {
   permission: "dashboard.view",
 
   init() {
-    const select = $("#dashStation");
-    stationOptions(select, { all: true });
-    select.hidden = boundStation() !== null || (state.lookups?.stations.length ?? 0) < 2;
-    select.addEventListener("change", () => this.load());
+    stationId = defaultStationId();
+
+    $("#stationSwitcher").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-station]");
+      if (btn) selectStation(Number(btn.dataset.station));
+    });
+
     $("#dashExceptions").addEventListener("click", (e) => {
       const row = e.target.closest("[data-exception-index]");
       if (row) {
         openException(exceptionItems[Number(row.dataset.exceptionIndex)], () => {
-          this.load();
+          loadNetwork();
           refreshBadges();
         });
       }
     });
+
+    $("#twinLedgerLink").addEventListener("click", () => navigate("stock", { stationId }));
   },
 
   async load() {
-    tableLoading($("#stationSummaryBody"), 8);
-    try {
-      const { data } = await api.get("/dashboard", { stationId: $("#dashStation").value || undefined });
-      render(data);
-    } catch (err) {
-      toastError(err);
-      tableError($("#stationSummaryBody"), 8, err, () => this.load());
-      setHtml($("#salesTrendChart"), html`<div class="chart-empty">${err.message}</div>`);
-    }
+    renderSwitcher();
+    renderNetworkMap();
+    await Promise.all([loadNetwork(), loadTwin()]);
   },
 
   actions: {
     "dash-export": () => window.print(),
     "dash-compare": openComparison,
+    "twin-receipt": () => navigate("truck"),
+    "journey-open": () => navigate("git", { search: "" }),
+    "open-dsr": () => navigate("dsr", { stationId, date: today() }),
   },
 };
