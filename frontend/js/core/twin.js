@@ -76,6 +76,37 @@ export function receiptHotspot(receipt) {
   return assetLabel("receipt-label", receipt.waybillRef, `${number(receipt.quantity)} L ${receipt.productCode}`, html`<small class="green">✓ Verified receipt</small>`, 'data-receipt-hotspot="1"');
 }
 
+/** Compact clickable list of the SAME shown pumps/tanks/receipt as the
+ * illustration's hotspots — shown instead of the canvas on narrow screens,
+ * where overlaying text on a photo stops being legible. Reuses the same
+ * data-tank-code/data-pump-id/data-receipt-hotspot attributes as the canvas
+ * hotspots, so one bindHotspotClicks() on a shared ancestor covers both. */
+export function mobileAssetsMarkup(shownPumps, movementsByProduct, pumpReadings, receipt) {
+  const rows = [];
+  if (receipt) {
+    rows.push(
+      html`<button type="button" class="mobile-asset" data-receipt-hotspot="1"><small>${receipt.waybillRef}</small><b>${number(receipt.quantity)} L ${receipt.productCode}</b><small class="green">✓ Verified receipt</small></button>`,
+    );
+  }
+  for (const code of ["PMS", "AGO"]) {
+    const m = movementsByProduct.get(code);
+    if (!m) continue;
+    const hasDip = m.physicalDip !== null && m.physicalDip !== undefined;
+    const within = hasDip && Math.abs(m.variance) <= m.tolerance;
+    const pct = m.capacity ? Math.min(100, Math.max(4, Math.round((m.closing / m.capacity) * 100))) : null;
+    rows.push(
+      html`<button type="button" class="mobile-asset" data-tank-code="${code}"><small>${code} · ${m.tankName ?? "Tank"}</small><b>${number(m.closing)} L</b>${pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${code === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`}<small class="${!hasDip ? "" : within ? "green" : "red"}">${!hasDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signedNumber(m.variance)} L variance`}</small></button>`,
+    );
+  }
+  for (const p of shownPumps) {
+    const r = pumpReadings.find((x) => x.pumpName === p.name);
+    rows.push(
+      html`<button type="button" class="mobile-asset" data-pump-id="${p.id}"><small>${p.name} · ${p.productCode}</small><b>${r?.netSales != null ? `${number(r.netSales)} L` : "—"}</b><small>Net sales today</small></button>`,
+    );
+  }
+  return html`${rows}`;
+}
+
 /** Builds the "beyond the fixed hotspots" panel markup, or null when there's
  * nothing to show — callers decide how to (un)hide their own container. */
 export function overflowMarkup(overflowPumps, overflowTanks, { movementsByTankId = new Map(), pumpReadings = [] } = {}) {

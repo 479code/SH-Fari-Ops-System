@@ -45,7 +45,7 @@ svg.ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;st
   position:sticky;top:0;height:100vh;background:var(--navy);color:#A9BFCE;
   display:flex;flex-direction:column;align-items:center;padding:20px 0 16px;gap:10px;z-index:25;
 }
-.monogram{width:34px;height:34px;object-fit:contain;border-radius:7px;background:#0a0908;padding:3px;margin:0 0 14px;}
+.monogram{width:28px;height:28px;object-fit:contain;border-radius:6px;background:#0a0908;padding:2px;margin:0 0 14px;display:block;}
 .rail-button{background:none;border:0;color:inherit;display:grid;place-items:center;width:60px;height:42px;position:relative;cursor:pointer;}
 .rail-button svg{width:19px;height:19px;}
 .rail-button.active{background:#1C435B;color:var(--amber);}
@@ -55,14 +55,14 @@ svg.ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;st
 
 /* Brand mark used by the sign-in card (a different markup shape than the sidebar brand below) */
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-mark{width:36px;height:36px;border-radius:9px;background:#0a0908;object-fit:contain;padding:3px;flex-shrink:0;}
+.brand-mark{width:36px;height:36px;border-radius:9px;background:#0a0908;object-fit:contain;padding:3px;flex-shrink:0;display:block;}
 .brand-text{line-height:1.22;}
 .brand-eyebrow{font-size:10px;letter-spacing:0.6px;color:var(--text-3);font-weight:700;}
 .brand-name{font-size:14px;font-weight:800;color:var(--text);}
 
 .sidebar{position:sticky;top:0;height:100vh;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:24;}
 .sidebar .brand{padding:20px 18px 18px;display:flex;align-items:center;gap:10px;border-right:0;}
-.brand-icon{width:32px;height:32px;object-fit:contain;border-radius:7px;background:#0a0908;padding:3px;flex-shrink:0;}
+.brand-icon{width:32px;height:32px;object-fit:contain;border-radius:7px;background:#0a0908;padding:3px;flex-shrink:0;display:block;}
 .sidebar .brand strong{font-size:16px;letter-spacing:-0.4px;display:block;line-height:1.2;color:var(--text);}
 .sidebar .brand small{font-size:9px;letter-spacing:1.8px;color:var(--text-3);font-weight:700;}
 .sidebar-nav{overflow:auto;flex:1;padding:2px 9px 14px;}
@@ -963,6 +963,17 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
 }
 .mobile-assets {
   display: none;
+}
+.mobile-asset{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);font-family:inherit;margin-bottom:8px;cursor:pointer;}
+.mobile-asset small{font-size:10.5px;color:var(--text-3);}
+.mobile-asset small.green{color:var(--green);}
+.mobile-asset small.red{color:var(--red);}
+.mobile-asset b{font-size:16px;font-weight:750;}
+.mobile-asset .tank-gauge{margin:2px 0;}
+@media(max-width:640px){
+  .station-canvas,.twin-legend{display:none;}
+  .mobile-assets{display:block;}
+  .dsr-canvas{display:none;}
 }
 .stock-equation {
   display: flex;

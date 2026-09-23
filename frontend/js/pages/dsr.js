@@ -6,7 +6,7 @@ import { dateTime, litres, naira, price } from "../core/format.js";
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, defaultStationId, today } from "../core/state.js";
-import { loadTankMovements, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot, bindHotspotClicks } from "../core/twin.js";
+import { bindHotspotClicks, loadTankMovements, mobileAssetsMarkup, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
 import { fillTable, formModal, reasonModal, showFieldErrors, tableError, tableLoading, toast, toastError, withBusy } from "../core/ui.js";
 
 const STATUS = {
@@ -68,6 +68,7 @@ async function renderStationIllustration() {
       ? html`${stationScene("Illustrative pump and tank layout for this station")}${pumpBlocks}${tankBlocks}`
       : html`<div class="chart-empty">No active pumps or tanks at this station — register them in Setup.</div>`,
   );
+  setHtml($("#dsrMobileAssets"), mobileAssetsMarkup(shownPumps, byProduct, pumpReadings, null));
   renderOverflowInto($("#dsrOverflow"), overflowPumps, overflowTanks, { movementsByTankId: byTankId, pumpReadings });
 }
 
@@ -131,6 +132,7 @@ async function load() {
     day = null;
     setHtml($("#dsrPumps"), html``);
     setHtml($("#dsrCanvas"), html``);
+    setHtml($("#dsrMobileAssets"), html``);
     $("#dsrOverflow").hidden = true;
     tableError($("#dsrProducts"), 5, err, load);
   }
@@ -189,10 +191,12 @@ export default {
       $("#dsrSave").click();
     });
 
-    bindHotspotClicks($("#dsrCanvas"), {
+    const hotspotHandlers = {
       onTankClick: (code) => tankDetailModal(code, currentMovementsByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId: Number($("#dsrStation").value) }) }),
       onPumpClick: highlightPumpCard,
-    });
+    };
+    bindHotspotClicks($("#dsrCanvas"), hotspotHandlers);
+    bindHotspotClicks($("#dsrMobileAssets"), hotspotHandlers);
 
     $("#dsrOpen").addEventListener("click", (e) =>
       withBusy(e.currentTarget, async () => {
