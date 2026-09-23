@@ -27,6 +27,8 @@ export function setProfile(user) {
   $("#profileName").textContent = parts.find((p) => p.length > 2) ?? parts[0] ?? user.username;
   $("#menuName").textContent = user.fullName;
   $("#menuRole").textContent = `${user.roles.join(", ")} · ${user.stationName ?? "All stations"}`;
+  $("#menuName2").textContent = user.fullName;
+  $("#menuRole2").textContent = user.roles.join(", ");
   $("#bellButton").hidden = !can("exceptions.view");
 }
 

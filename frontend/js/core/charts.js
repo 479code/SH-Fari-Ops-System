@@ -5,7 +5,7 @@
 import { html, raw } from "./dom.js";
 import { compactLitres, litres, naira, shortDate } from "./format.js";
 
-const COLORS = ["#F5A524", "#3E6DF6", "#1CA96B", "#7C5CFC", "#12A4A0", "#EF4B54"];
+const COLORS = ["#EDB243", "#316D9C", "#21805B", "#7C5CFC", "#12A4A0", "#BA4148"];
 
 /**
  * Weekly area chart. With `partialLast`, the final point is the current week to
@@ -32,15 +32,15 @@ export function areaChart(points, { partialLast = false } = {}) {
   const labelY = Math.max(py - 44, 4);
   const label = (i) => (dashed && i === points.length - 1 ? "This wk" : shortDate(points[i].weekStart));
   return html`<svg width="100%" viewBox="0 0 ${W} 210" role="img" aria-label="Weekly sales trend">
-    <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5A524" stop-opacity="0.28"/><stop offset="100%" stop-color="#F5A524" stop-opacity="0"/></linearGradient></defs>
-    <g stroke="#EBECF2" stroke-width="1"><line x1="0" y1="20" x2="640" y2="20"/><line x1="0" y1="65" x2="640" y2="65"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="155" x2="640" y2="155"/></g>
+    <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EDB243" stop-opacity="0.28"/><stop offset="100%" stop-color="#EDB243" stop-opacity="0"/></linearGradient></defs>
+    <g stroke="#E2E8EC" stroke-width="1"><line x1="0" y1="20" x2="640" y2="20"/><line x1="0" y1="65" x2="640" y2="65"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="155" x2="640" y2="155"/></g>
     <path d="${area}" fill="url(#areaFill)"/>
-    <path d="${solidLine}" fill="none" stroke="#F5A524" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    ${dashed ? html`<path d="${tailLine}" fill="none" stroke="#F5A524" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round"/>` : ""}
-    ${coords.map(([x, y], i) => html`<circle cx="${x}" cy="${y}" r="${i === peakIndex ? 5 : 3}" fill="#fff" stroke="#F5A524" stroke-width="2.5"><title>${dashed && i === points.length - 1 ? "This week to date" : `Week of ${shortDate(points[i].weekStart)}`}: ${naira(points[i].value)}</title></circle>`)}
-    <rect x="${labelX - 52}" y="${labelY}" width="104" height="30" rx="8" fill="#1D2140"/>
-    <text x="${labelX}" y="${labelY + 19}" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="700" font-family="Manrope">${naira(points[peakIndex].value, { compact: true })}</text>
-    ${coords.map(([x], i) => html`<text x="${Math.min(Math.max(x, 18), W - 18)}" y="204" text-anchor="middle" fill="#9498AB" font-size="10" font-family="Manrope">${label(i)}</text>`)}
+    <path d="${solidLine}" fill="none" stroke="#EDB243" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dashed ? html`<path d="${tailLine}" fill="none" stroke="#EDB243" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round"/>` : ""}
+    ${coords.map(([x, y], i) => html`<circle cx="${x}" cy="${y}" r="${i === peakIndex ? 5 : 3}" fill="#fff" stroke="#EDB243" stroke-width="2.5"><title>${dashed && i === points.length - 1 ? "This week to date" : `Week of ${shortDate(points[i].weekStart)}`}: ${naira(points[i].value)}</title></circle>`)}
+    <rect x="${labelX - 52}" y="${labelY}" width="104" height="30" rx="8" fill="#112E42"/>
+    <text x="${labelX}" y="${labelY + 19}" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="700" font-family="Inter">${naira(points[peakIndex].value, { compact: true })}</text>
+    ${coords.map(([x], i) => html`<text x="${Math.min(Math.max(x, 18), W - 18)}" y="204" text-anchor="middle" fill="#748695" font-size="10" font-family="Inter">${label(i)}</text>`)}
   </svg>`;
 }
 
@@ -57,10 +57,10 @@ export function donut(segments, centerLabel = "litres") {
       return arc;
     });
   const svg = html`<svg width="132" height="132" viewBox="0 0 132 132" role="img" aria-label="Distribution">
-    <circle cx="66" cy="66" r="50" fill="none" stroke="#F0F1F5" stroke-width="16"/>
+    <circle cx="66" cy="66" r="50" fill="none" stroke="#EEF1F3" stroke-width="16"/>
     ${arcs}
-    <text x="66" y="62" text-anchor="middle" font-size="19" font-weight="800" fill="#171A2B" font-family="Manrope">${total > 0 ? compactLitres(total) : "0"}</text>
-    <text x="66" y="78" text-anchor="middle" font-size="10.5" fill="#9498AB" font-family="Manrope">${centerLabel}</text>
+    <text x="66" y="62" text-anchor="middle" font-size="19" font-weight="800" fill="#142F43" font-family="Inter">${total > 0 ? compactLitres(total) : "0"}</text>
+    <text x="66" y="78" text-anchor="middle" font-size="10.5" fill="#748695" font-family="Inter">${centerLabel}</text>
   </svg>`;
   const legend = segments.length
     ? segments.map((s, i) => html`<div class="legend-row"><span class="legend-dot" style="background:${raw(s.color ?? COLORS[i % COLORS.length])}"></span>${s.label}<b>${litres(s.value, 0)}L</b></div>`)

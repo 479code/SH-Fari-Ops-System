@@ -9,7 +9,7 @@ import { refreshBadges } from "../core/shell.js";
 import { boundStation, currentMonth, state } from "../core/state.js";
 import { fillTable, infoModal, tableError, tableLoading, toastError } from "../core/ui.js";
 
-const GIT_COLORS = { order_created: "#7C5CFC", truck_assigned: "#7C5CFC", in_transit: "#3E6DF6", arrived: "#F5A524", discharging: "#1CA96B" };
+const GIT_COLORS = { order_created: "#7C5CFC", truck_assigned: "#7C5CFC", in_transit: "#316D9C", arrived: "#EDB243", discharging: "#21805B" };
 const ICON_WARN = raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>');
 const ICON_CLOCK = raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>');
 

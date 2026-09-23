@@ -1,22 +1,18 @@
 /**
  * router.js — page navigation for the single-page shell.
  *
- * Keeps the prototype's two-level navigation (group → sub page), adds hash URLs
- * (#truck, #setup/users) so refresh and back/forward work, hides pages the user
- * has no permission for, and initialises each page module once on first visit.
+ * Flat navigation: the icon-rail (shortcuts) and sidebar (.nav-item) both link
+ * straight to a page id — there is no group->subnav click-through step. The one
+ * exception is Setup, whose four sections (stations/users/master/settings) are
+ * an in-page tab strip (#subnav-setup) rather than separate top-level pages.
+ *
+ * Adds hash URLs (#truck, #setup/users) so refresh and back/forward work, hides
+ * pages/nav entries the user has no permission for, and initialises each page
+ * module once on first visit.
  */
 import { $$ } from "./dom.js";
 import { canAny } from "./state.js";
 import { toastError } from "./ui.js";
-
-const GROUPS = {
-  dashboard: ["dashboard"],
-  operations: ["truck", "dsr", "rtt", "stock", "git"],
-  finance: ["cash", "debtors", "expenses"],
-  reports: ["reports"],
-  audit: ["audit"],
-  setup: ["setup"],
-};
 
 const pages = new Map();
 const initialising = new Map();
@@ -37,26 +33,26 @@ export function allowed(id) {
   return perms.length === 0 || canAny(...perms);
 }
 
-const groupOf = (id) => Object.keys(GROUPS).find((g) => GROUPS[g].includes(id));
-
-export function firstAllowed(group) {
-  return (group ? GROUPS[group] : Object.values(GROUPS).flat()).find(allowed) ?? null;
+export function firstAllowed() {
+  return [...pages.keys()].find(allowed) ?? null;
 }
 
 export function applyNavPermissions() {
-  $$(".nav-btn").forEach((btn) => (btn.hidden = !firstAllowed(btn.dataset.group)));
-  $$(".sub-btn").forEach((btn) => (btn.hidden = !allowed(btn.dataset.page)));
+  $$(".nav-item[data-page], .rail-button[data-page]").forEach((btn) => (btn.hidden = !allowed(btn.dataset.page)));
+}
+
+function closeMobileNav() {
+  document.body.classList.remove("nav-open");
 }
 
 export async function navigate(id, params = {}, { updateHash = true } = {}) {
   if (!allowed(id)) id = firstAllowed();
   if (!id) return;
-  const group = groupOf(id);
 
-  $$(".nav-btn").forEach((n) => n.classList.toggle("active", n.dataset.group === group));
-  $$(".subnav").forEach((s) => s.classList.toggle("show", s.id === `subnav-${group}`));
-  $$(`#subnav-${group} .sub-btn:not([data-section])`).forEach((b) => b.classList.toggle("active", b.dataset.page === id));
+  $$(".nav-item[data-page]:not([data-section])").forEach((n) => n.classList.toggle("active", n.dataset.page === id));
+  $$(".rail-button[data-page]").forEach((n) => n.classList.toggle("active", n.dataset.page === id));
   $$(".page").forEach((p) => p.classList.toggle("active", p.id === `page-${id}`));
+  closeMobileNav();
 
   if (updateHash) {
     const hash = `#${id}${params.section ? `/${params.section}` : ""}`;
@@ -85,16 +81,24 @@ function fromHash() {
 
 export function startRouter() {
   applyNavPermissions();
-  document.querySelector(".main-nav").addEventListener("click", (e) => {
-    const btn = e.target.closest(".nav-btn");
-    if (btn) navigate(firstAllowed(btn.dataset.group));
-  });
+  $$(".sidebar-nav, .icon-rail").forEach((nav) =>
+    nav.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-page]:not([data-section])");
+      if (btn) navigate(btn.dataset.page);
+    }),
+  );
+  // Setup's in-page section tabs (#subnav-setup) carry both data-page and
+  // data-section; they stay a click-through pair handled here, same as before.
   $$(".subnav").forEach((nav) =>
     nav.addEventListener("click", (e) => {
       const btn = e.target.closest(".sub-btn");
       if (btn) navigate(btn.dataset.page, btn.dataset.section ? { section: btn.dataset.section } : {});
     }),
   );
+  $$("#menuToggle").forEach((btn) =>
+    btn.addEventListener("click", () => document.body.classList.toggle("nav-open")),
+  );
+  $$(".mobile-shade").forEach((shade) => shade.addEventListener("click", closeMobileNav));
   window.addEventListener("popstate", fromHash);
   fromHash();
 }

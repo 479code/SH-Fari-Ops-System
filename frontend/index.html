@@ -7,7 +7,7 @@
 <title>SH Fari Ops — Station Management &amp; Financial Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="css/app.css">
 <script type="module" src="js/app.js"></script>
@@ -47,35 +47,70 @@
 </div>
 
 <div id="appShell" hidden>
-<div class="topnav">
-  <div class="brand">
-    <div class="brand-mark">SF</div>
-    <div class="brand-text">
-      <div class="brand-eyebrow">SH FARI OPS</div>
-      <div class="brand-name">Station Control</div>
+<div class="app-shell">
+
+<aside class="icon-rail" aria-label="Workspace shortcuts">
+  <div class="monogram">SF</div>
+  <button type="button" class="rail-button" data-page="dashboard" aria-label="Dashboard"><svg class="ico" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg></button>
+  <button type="button" class="rail-button" data-page="truck" aria-label="Truck receiving"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0"/></svg></button>
+  <button type="button" class="rail-button" data-page="stock" aria-label="Stock &amp; dip"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6c0-4 16-4 16 0v12c0 4-16 4-16 0zM4 6c0 4 16 4 16 0M4 12c0 4 16 4 16 0"/></svg></button>
+  <button type="button" class="rail-button" data-page="cash" aria-label="Cash, POS &amp; bank"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18v14H3zM3 10h18M6 15h3M14 15h4"/></svg></button>
+  <button type="button" class="rail-button" data-page="reports" aria-label="Reports"><svg class="ico" viewBox="0 0 24 24"><path d="M3 21h19M6 17V9h3v8M12 17V3h3v14M18 17v-5h3v5"/></svg></button>
+  <button type="button" class="rail-button" data-page="audit" aria-label="Audit trail"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg></button>
+  <div class="rail-bottom">
+    <button type="button" class="rail-button" data-page="setup" aria-label="Station setup"><svg class="ico" viewBox="0 0 24 24"><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/></svg></button>
+  </div>
+</aside>
+
+<aside class="sidebar">
+  <div class="brand"><strong>SH FARI</strong><span>OPERATIONS</span></div>
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <div class="nav-group">
+      <div class="nav-label">Workspace</div>
+      <button type="button" class="nav-item active" data-page="dashboard"><svg class="ico" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg><span>Dashboard</span></button>
     </div>
-  </div>
+    <div class="nav-group">
+      <div class="nav-label">Operations</div>
+      <button type="button" class="nav-item" data-page="truck"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v11H1zM14 10h4l4 4v3h-8M4 17a2 2 0 1 0 4 0M16 17a2 2 0 1 0 4 0"/></svg><span>Truck receiving</span></button>
+      <button type="button" class="nav-item" data-page="dsr"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></svg><span>DSR</span><span class="nav-count" id="badgeDsr" hidden>Open</span></button>
+      <button type="button" class="nav-item" data-page="rtt"><svg class="ico" viewBox="0 0 24 24"><path d="M3 7v5h5M3 12a9 9 0 1 1 3 7"/></svg><span>RTT</span></button>
+      <button type="button" class="nav-item" data-page="stock"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6c0-4 16-4 16 0v12c0 4-16 4-16 0zM4 6c0 4 16 4 16 0M4 12c0 4 16 4 16 0"/></svg><span>Stock &amp; dip</span><span class="nav-count" id="badgeStock" hidden>0</span></button>
+      <button type="button" class="nav-item" data-page="git"><svg class="ico" viewBox="0 0 24 24"><path d="M2 7h13v11H2zM15 11h4l3 3v4h-7M5 18v3M18 18v3M5 3h10"/></svg><span>GIT</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Finance</div>
+      <button type="button" class="nav-item" data-page="cash"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18v14H3zM3 10h18M6 15h3M14 15h4"/></svg><span>Cash, POS &amp; bank</span></button>
+      <button type="button" class="nav-item" data-page="debtors"><svg class="ico" viewBox="0 0 24 24"><path d="M9 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6M3 21v-3a6 6 0 0 1 12 0v3M17 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 4 5v2"/></svg><span>Debtors</span></button>
+      <button type="button" class="nav-item" data-page="expenses"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h7M9 15h7M9 18h4"/></svg><span>Expenses</span><span class="nav-count" id="badgeExpenses" hidden>0</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Control</div>
+      <button type="button" class="nav-item" data-page="reports"><svg class="ico" viewBox="0 0 24 24"><path d="M3 21h19M6 17V9h3v8M12 17V3h3v14M18 17v-5h3v5"/></svg><span>Reports</span></button>
+      <button type="button" class="nav-item" data-page="audit"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg><span>Audit trail</span></button>
+      <button type="button" class="nav-item" data-page="setup"><svg class="ico" viewBox="0 0 24 24"><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/></svg><span>Station setup</span></button>
+    </div>
+  </nav>
+  <div class="sidebar-foot"><strong id="menuName2">—</strong><span id="menuRole2"></span></div>
+</aside>
 
-  <div class="main-nav">
-    <div class="nav-btn active" data-group="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Dashboard</div>
-    <div class="nav-btn" data-group="operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="7" width="13" height="9" rx="1.5"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="5.5" cy="18" r="1.8"/><circle cx="17.5" cy="18" r="1.8"/></svg>Operations<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-    <div class="nav-btn" data-group="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg>Finance<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-    <div class="nav-btn" data-group="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>Reports</div>
-    <div class="nav-btn" data-group="audit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Audit trail</div>
-    <div class="nav-btn" data-group="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.7 7.7 0 0 0-1.7-1L15 3h-6l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.3-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-1c.5.4 1.1.8 1.7 1L9 21h6l.4-2.6c.6-.2 1.2-.6 1.7-1l2.3 1 2-3.4z"/></svg>Setup</div>
-  </div>
+<div class="mobile-shade" data-action="menu"></div>
 
-  <div class="topnav-right">
+<main class="workspace">
+<header class="topbar">
+  <div class="row">
+    <div class="icon-btn menu-button" id="menuToggle" role="button" tabindex="0" aria-label="Toggle navigation"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+  </div>
+  <div class="top-actions">
     <div class="menu-wrap">
-      <label class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="globalSearch" placeholder="Search records, refs…" autocomplete="off" aria-label="Search records"></label>
+      <label class="search-pill"><svg class="ico" viewBox="0 0 24 24"><path d="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M15 15l6 6"/></svg><input id="globalSearch" placeholder="Search records, refs…" autocomplete="off" aria-label="Search records"></label>
       <div class="menu search-results" id="searchResults" hidden></div>
     </div>
     <div class="menu-wrap">
-      <div class="icon-btn" id="bellButton" role="button" tabindex="0" aria-label="Exceptions requiring attention"><span class="dot" id="bellCount" hidden>0</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+      <div class="icon-btn" id="bellButton" role="button" tabindex="0" aria-label="Exceptions requiring attention"><span class="dot" id="bellCount" hidden>0</span><svg class="ico" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M9 21h6"/></svg></div>
       <div class="menu notifications" id="bellMenu" hidden></div>
     </div>
-    <div class="menu-wrap">
-      <div class="profile-chip" id="profileButton" role="button" tabindex="0"><div class="avatar" id="profileInitials">—</div><span id="profileName">—</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="menu-wrap top-user">
+      <div class="profile-chip" id="profileButton" role="button" tabindex="0"><div class="avatar" id="profileInitials">—</div><span id="profileName">—</span><svg class="ico chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
       <div class="menu" id="profileMenu" hidden>
         <div class="menu-head"><b id="menuName"></b><span id="menuRole"></span></div>
         <div class="menu-item" data-action="change-password">Change password</div>
@@ -83,29 +118,7 @@
       </div>
     </div>
   </div>
-</div>
-
-<!-- SUB NAV (per group) -->
-<div class="subnav" id="subnav-operations">
-  <div class="sub-btn active" data-page="truck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="7" width="13" height="9" rx="1.5"/><path d="M14 10h4l3 3v3h-7z"/></svg>Truck receiving</div>
-  <div class="sub-btn" data-page="dsr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>DSR<span class="sub-badge" id="badgeDsr" hidden>Open</span></div>
-  <div class="sub-btn" data-page="rtt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-5h5"/></svg>RTT</div>
-  <div class="sub-btn" data-page="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v9"/></svg>Stock &amp; dip<span class="sub-badge" id="badgeStock" hidden>0</span></div>
-  <div class="sub-btn" data-page="git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M2 4h3l2.4 12h11.2L21 8H6"/></svg>GIT</div>
-</div>
-
-<div class="subnav" id="subnav-finance">
-  <div class="sub-btn active" data-page="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3"/></svg>Cash, POS &amp; bank</div>
-  <div class="sub-btn" data-page="debtors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>Debtors</div>
-  <div class="sub-btn" data-page="expenses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7v13h14V7M9 11v5M15 11v5"/></svg>Expenses<span class="sub-badge" id="badgeExpenses" hidden>0</span></div>
-</div>
-
-<div class="subnav" id="subnav-setup">
-  <div class="sub-btn active" data-page="setup" data-section="stations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Stations</div>
-  <div class="sub-btn" data-page="setup" data-section="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/></svg>Users &amp; roles</div>
-  <div class="sub-btn" data-page="setup" data-section="master"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Narration list &amp; master data</div>
-  <div class="sub-btn" data-page="setup" data-section="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Control settings</div>
-</div>
+</header>
 
 <div class="content">
 
@@ -129,7 +142,7 @@
       <div class="kpi">
         <div class="kpi-top"><div class="kpi-chip blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/></svg></div><span class="kpi-more">⋯</span></div>
         <div class="kpi-value num" id="kpiStock">—</div><div class="kpi-label">Stock value on hand</div>
-        <div class="kpi-delta up" style="background:#F0F1F5;color:var(--text-2)" id="kpiStockSub"></div>
+        <div class="kpi-delta up" style="background:#EEF1F3;color:var(--text-2)" id="kpiStockSub"></div>
       </div>
       <div class="kpi">
         <div class="kpi-top"><div class="kpi-chip red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg></div><span class="kpi-more">⋯</span></div>
@@ -463,6 +476,13 @@
       </div>
     </div>
 
+    <div class="subnav" id="subnav-setup">
+      <button type="button" class="sub-btn active" data-page="setup" data-section="stations"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Stations</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="users"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/></svg>Users &amp; roles</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="master"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Narration list &amp; master data</button>
+      <button type="button" class="sub-btn" data-page="setup" data-section="settings"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Control settings</button>
+    </div>
+
     <div data-setup-section="stations">
       <div class="panel">
         <div class="panel-head bordered"><div><div class="panel-title">Stations</div><div class="panel-sub">Select a station to manage its tanks and pumps</div></div></div>
@@ -535,8 +555,6 @@
       </div>
     </div>
   </div>
-
-</div>
 
 <!-- MODALS -->
 <div class="overlay" id="modalTruck"><div class="modal">
@@ -677,7 +695,10 @@
 </div></div>
 
 <div class="overlay" id="dynamicModal"><div class="modal"></div></div>
-</div>
+</div><!-- /content -->
+</main>
+</div><!-- /app-shell -->
+</div><!-- /appShell -->
 
 <div id="toastHost" style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;flex-direction:column;gap:8px;"></div>
 <div id="printArea"></div>
