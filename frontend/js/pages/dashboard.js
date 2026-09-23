@@ -19,7 +19,7 @@ import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
 import { bindHotspotClicks, loadTankMovements, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
-import { fillTable, infoModal, tableError, tableLoading, toastError } from "../core/ui.js";
+import { fillTable, infoModal, tableError, tableLoading, toast, toastError } from "../core/ui.js";
 
 const ICON_PATHS = {
   station: "M3 7h18V3H3zM5 7v14M19 7v14M2 21h20M9 11h6v10H9zM10 14h4",
@@ -40,6 +40,7 @@ let exceptionItems = [];
 let currentDsrDay = null;
 let currentReceipt = null;
 let currentMovementsByProduct = new Map();
+let summaryMonth = null;
 
 /* ---------------------------------------------------------------- Network */
 
@@ -105,6 +106,7 @@ function renderNetwork(data) {
   setHtml($("#salesByStation"), bars(data.salesByStation.map((s) => ({ label: s.stationName, value: s.value }))));
 
   $("#stationSummaryMonth").textContent = `${monthLabel(data.stationSummary.month)} — last closed month`;
+  summaryMonth = data.stationSummary.month;
   fillTable($("#stationSummaryBody"), 8, withTotals(data.stationSummary), summaryRow, "No stations to summarise.");
 }
 
@@ -343,7 +345,17 @@ export default {
   },
 
   actions: {
-    "dash-export": () => window.print(),
+    "dash-export": async (btn) => {
+      btn.disabled = true;
+      try {
+        await api.download("/reports/monthly-management", { month: summaryMonth ?? currentMonth(), format: "csv" }, `station-summary-${summaryMonth ?? currentMonth()}.csv`);
+        toast("Export downloaded.", "success");
+      } catch (err) {
+        toastError(err);
+      } finally {
+        btn.disabled = false;
+      }
+    },
     "dash-compare": openComparison,
     "twin-receipt": () => navigate("truck"),
     "journey-open": () => navigate("git", { search: "" }),

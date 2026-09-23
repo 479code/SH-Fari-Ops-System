@@ -47,7 +47,7 @@ async function loadMovement() {
 function tankCard(t) {
   const d = t.latestDip;
   const pct = t.capacity ? Math.min(100, Math.max(4, Math.round((t.balance / t.capacity) * 100))) : 60;
-  return html`<button type="button" class="tank-card" data-tank-id="${t.id}" data-station-id="${t.stationId}" data-product-id="${t.productId}">
+  return html`<button type="button" class="tank-card" data-tank-id="${t.id}" data-station-id="${t.stationId}" data-product-id="${t.productId}" data-capacity="${t.capacity ?? ""}">
     <div class="tank-cutaway"><div class="tank-fill ${t.productCode === "AGO" ? "amber" : ""}" style="height:${pct}%"></div><span>${t.productCode}</span></div>
     <div class="tank-info">
       <h3>${t.name} · ${t.stationName}</h3>
@@ -70,10 +70,10 @@ async function loadTanks() {
   }
 }
 
-async function openTankFromCard(stationId, productId, tankId) {
+async function openTankFromCard(stationId, productId, tankId, capacity) {
   try {
     const { data: m } = await api.get("/stock/movement", { stationId, productId, tankId, date: $("#stDate").value });
-    tankDetailModal(m.productCode, m, {
+    tankDetailModal(m.productCode, { ...m, capacity: capacity || null }, {
       onOpenLedger: () => {
         $("#stStation").value = String(stationId);
         $("#stProduct").value = String(productId);
@@ -168,7 +168,7 @@ export default {
 
     $("#stTankList").addEventListener("click", (e) => {
       const card = e.target.closest("[data-tank-id]");
-      if (card) openTankFromCard(Number(card.dataset.stationId), Number(card.dataset.productId), Number(card.dataset.tankId));
+      if (card) openTankFromCard(Number(card.dataset.stationId), Number(card.dataset.productId), Number(card.dataset.tankId), Number(card.dataset.capacity) || null);
     });
 
     $("#dpStation").addEventListener("change", () => {

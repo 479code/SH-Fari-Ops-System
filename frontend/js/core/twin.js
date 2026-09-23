@@ -66,7 +66,9 @@ export function pumpHotspot(pump, index, reading) {
 export function tankHotspot(productCode, movement) {
   if (!movement) return "";
   const cls = productCode === "PMS" ? "tank-label pms" : "tank-label ago";
-  return html`<button type="button" class="asset-label ${cls}" data-tank-code="${productCode}"><span class="label-name">${productCode} · ${movement.tankName ?? "Tank"}</span><span class="label-value">${number(movement.closing)} L</span>${tankVarianceBlock(movement)}</button>`;
+  const pct = movement.capacity ? Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100))) : null;
+  const gauge = pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${productCode === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`;
+  return html`<button type="button" class="asset-label ${cls}" data-tank-code="${productCode}">${gauge}<span class="label-name">${productCode} · ${movement.tankName ?? "Tank"}</span><span class="label-value">${number(movement.closing)} L</span>${tankVarianceBlock(movement)}</button>`;
 }
 
 export function receiptHotspot(receipt) {
@@ -83,7 +85,9 @@ export function overflowMarkup(overflowPumps, overflowTanks, { movementsByTankId
       const m = movementsByTankId.get(t.id);
       const noDip = !m || m.physicalDip === null || m.physicalDip === undefined;
       const within = !noDip && Math.abs(m.variance) <= m.tolerance;
-      return html`<div class="plain-card"><label>${t.productCode} · ${t.name}</label><strong>${m ? `${number(m.closing)} L` : "—"}</strong><div class="hint">${noDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signedNumber(m.variance)} L variance`}</div></div>`;
+      const pct = m?.capacity ? Math.min(100, Math.max(4, Math.round((m.closing / m.capacity) * 100))) : null;
+      const gauge = pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${t.productCode === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`;
+      return html`<div class="plain-card">${gauge}<label>${t.productCode} · ${t.name}</label><strong>${m ? `${number(m.closing)} L` : "—"}</strong><div class="hint">${noDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signedNumber(m.variance)} L variance`}</div></div>`;
     }),
     ...overflowPumps.map((p) => {
       const r = pumpReadings.find((x) => x.pumpName === p.name);
@@ -101,23 +105,32 @@ export function renderOverflowInto(el, overflowPumps, overflowTanks, opts) {
   if (markup) setHtml(el, markup);
 }
 
-/** Fetches `/stock/movement` for a set of tanks in parallel and indexes the
+/** Fetches `/stock/movement` for a set of tanks in parallel, plus `/stock/tanks`
+ * once for capacity (movement doesn't carry it), and indexes the merged
  * results by tank id and by product code (first match wins per product). */
 export async function loadTankMovements(stationId, tanks, date) {
-  const movements = await Promise.all(
-    tanks.map((t) =>
-      api
-        .get("/stock/movement", { stationId, productId: t.productId, date })
-        .then((r) => r.data)
-        .catch(() => null),
+  const [movements, tankRows] = await Promise.all([
+    Promise.all(
+      tanks.map((t) =>
+        api
+          .get("/stock/movement", { stationId, productId: t.productId, date })
+          .then((r) => r.data)
+          .catch(() => null),
+      ),
     ),
-  );
+    api
+      .get("/stock/tanks", { stationId })
+      .then((r) => r.data)
+      .catch(() => []),
+  ]);
+  const capacityByTankId = new Map(tankRows.map((t) => [t.id, t.capacity]));
   const byTankId = new Map();
   const byProduct = new Map();
   tanks.forEach((t, i) => {
     if (!movements[i]) return;
-    byTankId.set(t.id, movements[i]);
-    if (!byProduct.has(t.productCode)) byProduct.set(t.productCode, movements[i]);
+    const m = { ...movements[i], capacity: capacityByTankId.get(t.id) ?? null };
+    byTankId.set(t.id, m);
+    if (!byProduct.has(t.productCode)) byProduct.set(t.productCode, m);
   });
   return { byTankId, byProduct };
 }
@@ -128,11 +141,13 @@ export function tankDetailModal(productCode, movement, { onOpenLedger } = {}) {
   if (!movement) return;
   const hasDip = movement.physicalDip !== null && movement.physicalDip !== undefined;
   const within = hasDip && Math.abs(movement.variance) <= movement.tolerance;
+  const pct = movement.capacity ? Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100))) : null;
   infoModal({
     title: `${productCode} · ${movement.tankName ?? "Tank"}`,
     content: html`
       <div class="muted">${movement.stationName ?? ""}${movement.date ? ` · ${date(movement.date)}` : ""}</div>
       <div class="drawer-value num">${number(movement.closing)} L</div>
+      ${pct === null ? "" : html`<div class="tank-gauge" style="margin-bottom:10px"><div class="tank-gauge-fill ${productCode === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div><div class="hint" style="margin:-4px 0 10px">${pct}% of ${number(movement.capacity)} L capacity</div>`}
       <span class="pill ${!hasDip ? "gray" : within ? "green" : "red"}">${!hasDip ? "Awaiting today's dip" : within ? "Within tolerance" : "Variance exceeds tolerance"}</span>
       <div class="kv">
         <span>System closing</span><span>${number(movement.closing)} L</span>

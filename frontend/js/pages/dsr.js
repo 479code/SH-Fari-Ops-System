@@ -35,6 +35,7 @@ function card(r, i) {
     : html`${r.closingReading === null ? "—" : litres(r.closingReading)}`;
   return html`<div class="pump-card" data-index="${i}">
     <div class="pump-card-head"><span class="pump-name">${r.pumpName} — ${r.productCode}</span><span class="pill gray">${r.meterLabel ?? r.tankName}</span></div>
+    <div class="pump-visual" aria-hidden="true"><div class="pump-display" data-odometer>${r.closingReading === null ? litres(r.openingReading) : litres(r.closingReading)}</div><div class="pump-stripe">SH FARI</div></div>
     <div class="pump-row"><span>Opening reading</span><span>${opening}</span></div>
     <div class="pump-row"><span>Closing reading</span><span>${closing}</span></div>
     <div class="pump-row"><span>RTT (excluded)</span><span>${litres(r.rtt)}</span></div>
@@ -169,6 +170,8 @@ function onReadingInput(e) {
   const closingRaw = cardEl.querySelector('[name$="closingReading"]')?.value.replace(/,/g, "").trim();
   const net = closingRaw === "" || closingRaw === undefined ? null : Number(closingRaw) - opening - r.rtt;
   cardEl.querySelector("[data-net]").textContent = net === null || Number.isNaN(net) ? "—" : litres(net);
+  const closingNum = closingRaw === "" || closingRaw === undefined || Number.isNaN(Number(closingRaw)) ? null : Number(closingRaw);
+  cardEl.querySelector("[data-odometer]").textContent = litres(closingNum ?? opening);
 }
 
 export default {
