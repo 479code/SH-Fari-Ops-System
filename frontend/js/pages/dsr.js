@@ -3,9 +3,10 @@ import { api } from "../api/client.js";
 import { $, html, setHtml } from "../core/dom.js";
 import { dateInput, stationOptions } from "../core/filters.js";
 import { dateTime, litres, naira, price } from "../core/format.js";
+import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, defaultStationId, today } from "../core/state.js";
-import { loadTankMovements, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankHotspot } from "../core/twin.js";
+import { loadTankMovements, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot, bindHotspotClicks } from "../core/twin.js";
 import { fillTable, formModal, reasonModal, showFieldErrors, tableError, tableLoading, toast, toastError, withBusy } from "../core/ui.js";
 
 const STATUS = {
@@ -16,6 +17,7 @@ const STATUS = {
 
 let day = null;
 let dirty = false;
+let currentMovementsByProduct = new Map();
 
 const editable = () => day?.status === "open" && can("dsr.record");
 
@@ -58,6 +60,7 @@ async function renderStationIllustration() {
   if (Number($("#dsrStation").value) !== stationId || $("#dsrDate").value !== date) return;
 
   const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, byProduct.get(code)));
+  currentMovementsByProduct = byProduct;
   setHtml(
     $("#dsrCanvas"),
     shownPumps.length || shownTanks.length
@@ -65,6 +68,16 @@ async function renderStationIllustration() {
       : html`<div class="chart-empty">No active pumps or tanks at this station — register them in Setup.</div>`,
   );
   renderOverflowInto($("#dsrOverflow"), overflowPumps, overflowTanks, { movementsByTankId: byTankId, pumpReadings });
+}
+
+function highlightPumpCard(pumpId) {
+  const index = day?.readings.findIndex((r) => r.pumpId === pumpId) ?? -1;
+  if (index < 0) return;
+  const cardEl = $(`.pump-card[data-index="${index}"]`);
+  if (!cardEl) return;
+  cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  cardEl.classList.add("flash");
+  setTimeout(() => cardEl.classList.remove("flash"), 1200);
 }
 
 function render() {
@@ -171,6 +184,11 @@ export default {
     $("#dsrPumps").addEventListener("submit", (e) => {
       e.preventDefault();
       $("#dsrSave").click();
+    });
+
+    bindHotspotClicks($("#dsrCanvas"), {
+      onTankClick: (code) => tankDetailModal(code, currentMovementsByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId: Number($("#dsrStation").value) }) }),
+      onPumpClick: highlightPumpCard,
     });
 
     $("#dsrOpen").addEventListener("click", (e) =>

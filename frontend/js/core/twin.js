@@ -13,7 +13,8 @@
 import { api } from "../api/client.js";
 import { html, raw, setHtml } from "./dom.js";
 import { pumpsFor, tanksFor } from "./filters.js";
-import { number } from "./format.js";
+import { date, naira, number } from "./format.js";
+import { infoModal } from "./ui.js";
 
 const ICON_PATHS = {
   check: "M4 12l5 5L21 5",
@@ -26,8 +27,8 @@ export function stationScene(alt) {
   return html`<img class="station-scene" src="/assets/station-scene.jpg" alt="${alt}">`;
 }
 
-export function assetLabel(cls, name, value, extra = "") {
-  return html`<div class="asset-label ${cls}"><span class="label-name">${name}</span><span class="label-value">${value}</span>${extra}</div>`;
+export function assetLabel(cls, name, value, extra = "", attrs = "") {
+  return html`<button type="button" class="asset-label ${cls}" ${raw(attrs)}><span class="label-name">${name}</span><span class="label-value">${value}</span>${extra}</button>`;
 }
 
 export function tankVarianceBlock(movement) {
@@ -59,18 +60,18 @@ export function splitStationForIllustration(stationId) {
 
 export function pumpHotspot(pump, index, reading) {
   const value = reading?.netSales != null ? `${number(reading.netSales)} L` : "—";
-  return assetLabel(`pump-label p${index + 1}`, `${pump.name} · ${pump.productCode}`, value, reading ? "" : html`<small>No reading today</small>`);
+  return assetLabel(`pump-label p${index + 1}`, `${pump.name} · ${pump.productCode}`, value, reading ? "" : html`<small>No reading today</small>`, `data-pump-id="${pump.id}"`);
 }
 
 export function tankHotspot(productCode, movement) {
   if (!movement) return "";
   const cls = productCode === "PMS" ? "tank-label pms" : "tank-label ago";
-  return html`<div class="${cls}"><span class="label-name">${productCode} · ${movement.tankName ?? "Tank"}</span><span class="label-value">${number(movement.closing)} L</span>${tankVarianceBlock(movement)}</div>`;
+  return html`<button type="button" class="asset-label ${cls}" data-tank-code="${productCode}"><span class="label-name">${productCode} · ${movement.tankName ?? "Tank"}</span><span class="label-value">${number(movement.closing)} L</span>${tankVarianceBlock(movement)}</button>`;
 }
 
 export function receiptHotspot(receipt) {
   if (!receipt) return "";
-  return assetLabel("receipt-label", receipt.waybillRef, `${number(receipt.quantity)} L ${receipt.productCode}`, html`<small class="green">✓ Verified receipt</small>`);
+  return assetLabel("receipt-label", receipt.waybillRef, `${number(receipt.quantity)} L ${receipt.productCode}`, html`<small class="green">✓ Verified receipt</small>`, 'data-receipt-hotspot="1"');
 }
 
 /** Builds the "beyond the fixed hotspots" panel markup, or null when there's
@@ -119,4 +120,109 @@ export async function loadTankMovements(stationId, tanks, date) {
     if (!byProduct.has(t.productCode)) byProduct.set(t.productCode, movements[i]);
   });
   return { byTankId, byProduct };
+}
+
+/* --------------------------------------------------------- Click-to-detail */
+
+export function tankDetailModal(productCode, movement, { onOpenLedger } = {}) {
+  if (!movement) return;
+  const hasDip = movement.physicalDip !== null && movement.physicalDip !== undefined;
+  const within = hasDip && Math.abs(movement.variance) <= movement.tolerance;
+  infoModal({
+    title: `${productCode} · ${movement.tankName ?? "Tank"}`,
+    content: html`
+      <div class="muted">${movement.stationName ?? ""}${movement.date ? ` · ${date(movement.date)}` : ""}</div>
+      <div class="drawer-value num">${number(movement.closing)} L</div>
+      <span class="pill ${!hasDip ? "gray" : within ? "green" : "red"}">${!hasDip ? "Awaiting today's dip" : within ? "Within tolerance" : "Variance exceeds tolerance"}</span>
+      <div class="kv">
+        <span>System closing</span><span>${number(movement.closing)} L</span>
+        <span>Physical dip</span><span>${hasDip ? `${number(movement.physicalDip)} L` : "Not recorded today"}</span>
+        <span>Variance</span><span>${hasDip ? `${signedNumber(movement.variance)} L` : "—"}</span>
+        <span>Station tolerance</span><span>±${number(movement.tolerance)} L</span>
+        <span>Opening</span><span>${number(movement.opening)} L</span>
+        <span>Receipts today</span><span>${number(movement.receipts)} L</span>
+        <span>Sales today</span><span>${number(movement.dispensed)} L</span>
+        <span>RTT today</span><span>${number(movement.rtt)} L</span>
+      </div>
+      <div class="hint">The physical dip is a measured check against the system ledger — it never overwrites the ledger. Adjustments require a separate approved record.</div>
+      ${onOpenLedger ? html`<div style="margin-top:14px"><button type="button" class="btn btn-primary" data-open-ledger>Open stock ledger</button></div>` : ""}
+    `,
+    onRender: (form, close) => {
+      form.querySelector("[data-open-ledger]")?.addEventListener("click", () => {
+        close();
+        onOpenLedger();
+      });
+    },
+  });
+}
+
+export function pumpDetailModal(pump, reading, { onOpenDay } = {}) {
+  infoModal({
+    title: `${pump.name} · ${pump.productCode}`,
+    content: html`
+      <div class="muted">${pump.meterLabel ?? pump.tankName ?? ""}</div>
+      <div class="drawer-value num">${reading?.netSales != null ? `${number(reading.netSales)} L` : "—"}</div>
+      ${reading ? "" : html`<span class="pill gray">No reading recorded today</span>`}
+      <div class="kv">
+        <span>Opening reading</span><span>${reading ? number(reading.openingReading) : "—"}</span>
+        <span>Closing reading</span><span>${reading?.closingReading != null ? number(reading.closingReading) : "Not entered"}</span>
+        <span>RTT (excluded)</span><span>${reading ? number(reading.rtt) : "—"}</span>
+        <span>Net sales</span><span>${reading?.netSales != null ? `${number(reading.netSales)} L` : "—"}</span>
+        <span>Sales value</span><span>${reading?.salesValue != null ? naira(reading.salesValue) : "—"}</span>
+      </div>
+      ${onOpenDay ? html`<div style="margin-top:14px"><button type="button" class="btn btn-primary" data-open-day>Open DSR day</button></div>` : ""}
+    `,
+    onRender: (form, close) => {
+      form.querySelector("[data-open-day]")?.addEventListener("click", () => {
+        close();
+        onOpenDay();
+      });
+    },
+  });
+}
+
+export function receiptDetailModal(receipt, { onOpenRecord } = {}) {
+  if (!receipt) return;
+  infoModal({
+    title: receipt.waybillRef,
+    content: html`
+      <div class="muted">${receipt.stationName ?? ""}${receipt.businessDate ? ` · ${date(receipt.businessDate)}` : ""}</div>
+      <div class="drawer-value num">${number(receipt.quantity)} L ${receipt.productCode}</div>
+      <span class="pill green">✓ Verified receipt</span>
+      <div class="kv">
+        <span>Waybill</span><span>${receipt.waybillRef}</span>
+        <span>Quantity</span><span>${number(receipt.quantity)} L</span>
+        <span>Landing price</span><span>${receipt.landingPrice != null ? naira(receipt.landingPrice) : "—"}</span>
+        <span>Tank</span><span>${receipt.tankName ?? "—"}</span>
+      </div>
+      ${onOpenRecord ? html`<div style="margin-top:14px"><button type="button" class="btn btn-primary" data-open-record>Open Truck Receiving</button></div>` : ""}
+    `,
+    onRender: (form, close) => {
+      form.querySelector("[data-open-record]")?.addEventListener("click", () => {
+        close();
+        onOpenRecord();
+      });
+    },
+  });
+}
+
+/** Wires click-to-detail on a rendered illustration container in one call.
+ * Callers decide what a click does — Dashboard opens a detail modal;
+ * DSR's own pump illustration instead highlights the matching reading card
+ * already on the page, since opening a modal with the same numbers shown
+ * right below it would be redundant there. */
+export function bindHotspotClicks(container, { onTankClick, onPumpClick, onReceiptClick } = {}) {
+  container.addEventListener("click", (e) => {
+    const tankBtn = e.target.closest("[data-tank-code]");
+    if (tankBtn) {
+      onTankClick?.(tankBtn.dataset.tankCode);
+      return;
+    }
+    const pumpBtn = e.target.closest("[data-pump-id]");
+    if (pumpBtn) {
+      onPumpClick?.(Number(pumpBtn.dataset.pumpId));
+      return;
+    }
+    if (e.target.closest("[data-receipt-hotspot]")) onReceiptClick?.();
+  });
 }

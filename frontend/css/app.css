@@ -201,7 +201,8 @@ th.num{text-align:right;}
 .field .input[readonly]{color:var(--text-2);background:#F5F6FA;}
 
 .pump-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 20px;}
-.pump-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 15px;background:#FAFAFD;}
+.pump-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 15px;background:#FAFAFD;transition:box-shadow .2s,border-color .2s;}
+.pump-card.flash{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-bg);}
 .pump-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .pump-name{font-size:12.8px;font-weight:700;}
 .pump-row{display:flex;justify-content:space-between;font-size:12.2px;color:var(--text-2);padding:3.5px 0;}
@@ -343,6 +344,8 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
 .kv span:nth-child(odd){color:var(--text-2);}
 .kv span:nth-child(even){text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text);}
 .kv .total{border-top:1px dashed var(--border-2);padding-top:8px;font-weight:800!important;}
+.drawer-value{font-size:32px;letter-spacing:-1px;font-weight:800;margin:10px 0 14px;}
+.asset-label{cursor:pointer;font-family:inherit;}
 .dest-row{display:grid;grid-template-columns:1fr 150px auto;gap:8px;margin-bottom:8px;align-items:center;}
 .chart-empty{padding:44px 20px;text-align:center;color:var(--text-3);font-size:12.5px;}
 .stage.cancelled .stage-dot{background:var(--red-bg);border-color:var(--red);color:var(--red);}
@@ -1196,6 +1199,16 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   grid-template-columns: 1.2fr 1fr;
   gap: 16px;
   margin-top: 18px;
+}
+.stats-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 7px;margin-bottom:18px;}
+.stat{padding:0 20px;border-left:1px solid var(--border);min-width:0;}
+.stat:first-child{border:0;}
+.stat label{display:block;color:var(--text-3);font-size:11px;margin-bottom:6px;}
+.stat strong{display:block;font-weight:680;font-size:25px;letter-spacing:-0.9px;line-height:1.25;font-variant-numeric:tabular-nums;}
+.stat small{display:block;font-size:10px;color:var(--text-3);margin-top:6px;}
+@media(max-width:700px){.stats-strip{grid-template-columns:1fr 1fr;}
+  .stat{border-left:0;border-top:1px solid var(--border);padding:10px 12px 0;}
+  .stat:nth-child(1),.stat:nth-child(2){border-top:0;padding-top:0;}
 }
 /* Supplementary panel under the station illustration for whatever the
    picture's fixed hotspots can't show (a 4th+ pump, a 2nd tank of the same

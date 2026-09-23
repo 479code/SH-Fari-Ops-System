@@ -13,11 +13,12 @@ import { api } from "../api/client.js";
 import { $, html, raw, setHtml } from "../core/dom.js";
 import { areaChart, bars } from "../core/charts.js";
 import { exceptionPill, openException } from "../core/exceptions.js";
+import { pumpsFor } from "../core/filters.js";
 import { monthLabel, naira, number, pct, recentMonths } from "../core/format.js";
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
-import { loadTankMovements, pumpHotspot, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankHotspot } from "../core/twin.js";
+import { bindHotspotClicks, loadTankMovements, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
 import { fillTable, infoModal, tableError, tableLoading, toastError } from "../core/ui.js";
 
 const ICON_PATHS = {
@@ -36,6 +37,9 @@ const ico = (name, cls = "") => raw(`<svg class="ico ${cls}" viewBox="0 0 24 24"
 
 let stationId = null;
 let exceptionItems = [];
+let currentDsrDay = null;
+let currentReceipt = null;
+let currentMovementsByProduct = new Map();
 
 /* ---------------------------------------------------------------- Network */
 
@@ -247,6 +251,10 @@ async function loadTwin() {
   await renderTwin(shownPumps, movementsByProduct, dsrDay, receiptRows[0] ?? null);
   renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay);
 
+  currentDsrDay = dsrDay;
+  currentReceipt = receiptRows[0] ?? null;
+  currentMovementsByProduct = movementsByProduct;
+
   const equationTank = shownTanks[0] ?? overflowTanks[0] ?? null;
   renderEquation(equationTank ? movementsByTankId.get(equationTank.id) : null);
 
@@ -315,6 +323,17 @@ export default {
     });
 
     $("#twinLedgerLink").addEventListener("click", () => navigate("stock", { stationId }));
+
+    bindHotspotClicks($("#twinCanvas"), {
+      onTankClick: (code) => tankDetailModal(code, currentMovementsByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId }) }),
+      onPumpClick: (id) => {
+        const pump = pumpsFor(stationId).find((p) => p.id === id);
+        if (!pump) return;
+        const reading = (currentDsrDay?.readings ?? []).find((r) => r.pumpName === pump.name);
+        pumpDetailModal(pump, reading, { onOpenDay: () => navigate("dsr", { stationId, date: today() }) });
+      },
+      onReceiptClick: () => receiptDetailModal(currentReceipt, { onOpenRecord: () => navigate("truck") }),
+    });
   },
 
   async load() {

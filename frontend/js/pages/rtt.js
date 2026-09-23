@@ -2,8 +2,8 @@
 import { api } from "../api/client.js";
 import { $, html, setOptions } from "../core/dom.js";
 import { dateInput, monthOptions, productOptions, pumpsFor, stationOptions } from "../core/filters.js";
-import { date, litres, statusPill } from "../core/format.js";
-import { can, today } from "../core/state.js";
+import { date, litres, monthLabel, statusPill } from "../core/format.js";
+import { can, stationName, today } from "../core/state.js";
 import { bindForm, closeModal, loadTable, reasonModal, renderPager, toast } from "../core/ui.js";
 
 const COLS = 9;
@@ -38,6 +38,11 @@ async function load() {
     load();
   });
   $("#rttSummary").textContent = `Total RTT (active): ${litres(res.summary.totalLitres)} L`;
+  $("#rttStatTotal").textContent = `${litres(res.summary.totalLitres)} L`;
+  $("#rttStatTotalSub").textContent = `${res.pagination.total} entr${res.pagination.total === 1 ? "y" : "ies"}`;
+  $("#rttStatPeriod").textContent = monthLabel($("#rttMonth").value);
+  $("#rttStatPeriodSub").textContent = `${date(res.summary.range.from, { year: false })} – ${date(res.summary.range.to, { year: false })}`;
+  $("#rttStatStation").textContent = $("#rttStation").value ? stationName($("#rttStation").value) : "All stations";
 }
 
 const reload = () => {

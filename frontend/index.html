@@ -203,6 +203,13 @@
       <div><div class="page-title">Truck receiving</div><div class="page-desc">A verified receipt updates stock automatically and closes any linked GIT order</div></div>
       <div class="actions"><button class="btn btn-primary" data-open-modal="modalTruck" data-permission="receipts.create">+ Record receipt</button></div>
     </div>
+    <div class="stats-strip">
+      <div class="stat"><label>Verified receipts</label><strong class="num" id="truckStatVerified">—</strong><small id="truckStatVerifiedSub"></small></div>
+      <div class="stat"><label>Awaiting verification</label><strong class="num" id="truckStatReceived">—</strong><small>Check against the tank, then verify</small></div>
+      <div class="stat"><label>Disputed</label><strong class="num" id="truckStatDisputed">—</strong><small class="red">Resolve before verification</small></div>
+      <div class="stat"><label>Period</label><strong id="truckStatPeriod">—</strong><small id="truckStatPeriodSub"></small></div>
+    </div>
+    <div class="notice"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg><div><strong>Receive. Reconcile. Verify.</strong>Verification is the control point for stock posting and any linked GIT discharge. Draft, unverified receipts never move stock.</div></div>
     <div class="panel">
       <div class="filter-row">
         <select class="select" id="truckMonth" aria-label="Month"></select>
@@ -258,6 +265,13 @@
       <div><div class="page-title">Return to Tank (RTT)</div><div class="page-desc">Test / trial pump dispensing returned to tank — recorded separately, never counted as sales</div></div>
       <div class="actions"><button class="btn btn-primary" data-open-modal="modalRtt" data-permission="rtt.create">+ Log RTT</button></div>
     </div>
+    <div class="stats-strip">
+      <div class="stat"><label>Total RTT (active)</label><strong class="num" id="rttStatTotal">—</strong><small id="rttStatTotalSub"></small></div>
+      <div class="stat"><label>Period</label><strong id="rttStatPeriod">—</strong><small id="rttStatPeriodSub"></small></div>
+      <div class="stat"><label>Filtered to</label><strong id="rttStatStation">—</strong><small>Change with the station filter below</small></div>
+      <div class="stat"><label>Sales treatment</label><strong>Excluded</strong><small>Every return keeps its source pump, product and reason</small></div>
+    </div>
+    <div class="notice"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5zM8 12l3 3 5-6"/></svg><div><strong>RTT is returned fuel, never sales.</strong>Returns retain station, pump, product, quantity, operator and reason, and are added back to the tank per the configured stock equation.</div></div>
     <div class="panel">
       <div class="filter-row"><select class="select" id="rttMonth" aria-label="Month"></select><select class="select" id="rttStation" aria-label="Station"></select><div class="spacer"></div><span class="muted small" id="rttSummary"></span></div>
       <div class="table-wrap"><table>

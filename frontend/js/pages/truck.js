@@ -2,7 +2,7 @@
 import { api } from "../api/client.js";
 import { $, debounce, html, setOptions } from "../core/dom.js";
 import { dateInput, monthOptions, productOptions, stationOptions, tanksFor } from "../core/filters.js";
-import { date, litres, naira, number, price, statusPill } from "../core/format.js";
+import { date, litres, monthLabel, naira, number, price, statusPill } from "../core/format.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, state, today } from "../core/state.js";
 import { bindForm, closeModal, formModal, loadTable, reasonModal, renderPager, toast } from "../core/ui.js";
@@ -66,6 +66,12 @@ async function load() {
   });
   const s = res.summary;
   $("#truckSummary").textContent = `${s.verifiedCount} verified · ${litres(s.verifiedQuantity, 0)} L · ${naira(s.verifiedValue, { compact: true })} landed.`;
+  $("#truckStatVerified").textContent = s.verifiedCount;
+  $("#truckStatVerifiedSub").textContent = `${litres(s.verifiedQuantity, 0)} L received`;
+  $("#truckStatReceived").textContent = s.byStatus.received ?? 0;
+  $("#truckStatDisputed").textContent = s.byStatus.disputed ?? 0;
+  $("#truckStatPeriod").textContent = monthLabel($("#truckMonth").value);
+  $("#truckStatPeriodSub").textContent = `${res.pagination.total} record${res.pagination.total === 1 ? "" : "s"}`;
 }
 
 function reload() {
