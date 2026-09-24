@@ -23,28 +23,9 @@ const ICON_PATHS = {
 const twinIcon = (name) => raw(`<svg class="ico" viewBox="0 0 24 24"><path d="${ICON_PATHS[name]}"/></svg>`);
 export const signedNumber = (v) => `${v >= 0 ? "+" : ""}${number(v)}`;
 
-/** Pixel-mapped position of each tank's glass window within station-scene.jpg
- * (a 1672×941 image), as percentages — so a dynamic liquid overlay lines up
- * with the photo at any render size. Measured directly against the source
- * image, not guessed. */
-const TANK_WINDOW = {
-  PMS: { left: 22.4, top: 64.6, width: 25.7, height: 12.8 },
-  AGO: { left: 54.4, top: 64.3, width: 26.3, height: 13.1 },
-};
-
 export function tankFillPct(movement) {
   if (!movement?.capacity) return null;
   return Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100)));
-}
-
-/** The actual dynamic liquid level, drawn directly over the tank's glass
- * window in the photo — not just a small gauge bar next to it. Bottom-
- * anchored, grows/shrinks with real balance ÷ capacity. */
-export function tankLiquidOverlay(productCode, pct) {
-  const w = TANK_WINDOW[productCode];
-  if (!w || pct === null) return "";
-  const color = productCode === "AGO" ? "199,146,43" : "13,163,138";
-  return html`<div class="tank-liquid" style="left:${w.left}%;top:${w.top}%;width:${w.width}%;height:${w.height}%" aria-hidden="true"><div class="tank-liquid-fill" style="height:${pct}%;background:rgba(${color},0.88)"></div></div>`;
 }
 
 export function stationScene(alt) {
