@@ -263,7 +263,6 @@ th.num{text-align:right;}
   .network-stat{border-left:0;border-top:1px solid var(--border);padding:10px 0 0;}
   .network-stat:first-child{border-top:0;padding-top:0;}
   .station-switcher{grid-template-columns:1fr;}
-  .station-canvas{min-height:260px;}
 }
 
 /* =====================================================================
@@ -768,10 +767,8 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   aspect-ratio: 1672 / 941;
   background: var(--card);
   isolation: isolate;
-  min-height: 350px;
 }
 .dsr-canvas {
-  min-height: 220px;
   margin-bottom: 16px;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -786,8 +783,9 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   object-position: center;
   z-index: -1;
 }
-.tank-liquid{position:absolute;overflow:hidden;border-radius:999px;pointer-events:none;z-index:1;}
-.tank-liquid-fill{position:absolute;bottom:0;left:0;width:100%;transition:height .5s ease;box-shadow:inset 0 2px 6px rgba(255,255,255,0.25);}
+.tank-liquid{position:absolute;overflow:hidden;border-radius:40%/50%;pointer-events:none;z-index:1;}
+.tank-liquid-fill{position:absolute;bottom:0;left:0;width:100%;transition:height .5s ease;box-shadow:inset 0 3px 8px rgba(255,255,255,0.3),inset 0 -4px 10px rgba(0,0,0,0.15);}
+.tank-liquid-fill:before{content:"";position:absolute;top:0;left:0;right:0;height:35%;background:linear-gradient(to bottom,rgba(255,255,255,0.32),rgba(255,255,255,0));}
 .asset-label {
   position: absolute;
   z-index: 3;
