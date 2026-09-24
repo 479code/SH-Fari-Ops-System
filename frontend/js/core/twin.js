@@ -23,6 +23,30 @@ const ICON_PATHS = {
 const twinIcon = (name) => raw(`<svg class="ico" viewBox="0 0 24 24"><path d="${ICON_PATHS[name]}"/></svg>`);
 export const signedNumber = (v) => `${v >= 0 ? "+" : ""}${number(v)}`;
 
+/** Pixel-mapped position of each tank's glass window within station-scene.jpg
+ * (a 1672×941 image), as percentages — so a dynamic liquid overlay lines up
+ * with the photo at any render size. Measured directly against the source
+ * image, not guessed. */
+const TANK_WINDOW = {
+  PMS: { left: 22.4, top: 64.6, width: 25.7, height: 12.8 },
+  AGO: { left: 54.4, top: 64.3, width: 26.3, height: 13.1 },
+};
+
+export function tankFillPct(movement) {
+  if (!movement?.capacity) return null;
+  return Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100)));
+}
+
+/** The actual dynamic liquid level, drawn directly over the tank's glass
+ * window in the photo — not just a small gauge bar next to it. Bottom-
+ * anchored, grows/shrinks with real balance ÷ capacity. */
+export function tankLiquidOverlay(productCode, pct) {
+  const w = TANK_WINDOW[productCode];
+  if (!w || pct === null) return "";
+  const color = productCode === "AGO" ? "199,146,43" : "13,163,138";
+  return html`<div class="tank-liquid" style="left:${w.left}%;top:${w.top}%;width:${w.width}%;height:${w.height}%" aria-hidden="true"><div class="tank-liquid-fill" style="height:${pct}%;background:rgba(${color},0.88)"></div></div>`;
+}
+
 export function stationScene(alt) {
   return html`<img class="station-scene" src="/assets/station-scene.jpg" alt="${alt}">`;
 }
@@ -66,7 +90,7 @@ export function pumpHotspot(pump, index, reading) {
 export function tankHotspot(productCode, movement) {
   if (!movement) return "";
   const cls = productCode === "PMS" ? "tank-label pms" : "tank-label ago";
-  const pct = movement.capacity ? Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100))) : null;
+  const pct = tankFillPct(movement);
   const gauge = pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${productCode === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`;
   return html`<button type="button" class="asset-label ${cls}" data-tank-code="${productCode}">${gauge}<span class="label-name">${productCode} · ${movement.tankName ?? "Tank"}</span><span class="label-value">${number(movement.closing)} L</span>${tankVarianceBlock(movement)}</button>`;
 }
@@ -93,7 +117,7 @@ export function mobileAssetsMarkup(shownPumps, movementsByProduct, pumpReadings,
     if (!m) continue;
     const hasDip = m.physicalDip !== null && m.physicalDip !== undefined;
     const within = hasDip && Math.abs(m.variance) <= m.tolerance;
-    const pct = m.capacity ? Math.min(100, Math.max(4, Math.round((m.closing / m.capacity) * 100))) : null;
+    const pct = tankFillPct(m);
     rows.push(
       html`<button type="button" class="mobile-asset" data-tank-code="${code}"><small>${code} · ${m.tankName ?? "Tank"}</small><b>${number(m.closing)} L</b>${pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${code === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`}<small class="${!hasDip ? "" : within ? "green" : "red"}">${!hasDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signedNumber(m.variance)} L variance`}</small></button>`,
     );
@@ -116,7 +140,7 @@ export function overflowMarkup(overflowPumps, overflowTanks, { movementsByTankId
       const m = movementsByTankId.get(t.id);
       const noDip = !m || m.physicalDip === null || m.physicalDip === undefined;
       const within = !noDip && Math.abs(m.variance) <= m.tolerance;
-      const pct = m?.capacity ? Math.min(100, Math.max(4, Math.round((m.closing / m.capacity) * 100))) : null;
+      const pct = tankFillPct(m);
       const gauge = pct === null ? "" : html`<div class="tank-gauge"><div class="tank-gauge-fill ${t.productCode === "AGO" ? "amber" : ""}" style="width:${pct}%"></div></div>`;
       return html`<div class="plain-card">${gauge}<label>${t.productCode} · ${t.name}</label><strong>${m ? `${number(m.closing)} L` : "—"}</strong><div class="hint">${noDip ? "Awaiting today's dip" : within ? "Within tolerance" : `${signedNumber(m.variance)} L variance`}</div></div>`;
     }),
@@ -172,7 +196,7 @@ export function tankDetailModal(productCode, movement, { onOpenLedger } = {}) {
   if (!movement) return;
   const hasDip = movement.physicalDip !== null && movement.physicalDip !== undefined;
   const within = hasDip && Math.abs(movement.variance) <= movement.tolerance;
-  const pct = movement.capacity ? Math.min(100, Math.max(4, Math.round((movement.closing / movement.capacity) * 100))) : null;
+  const pct = tankFillPct(movement);
   infoModal({
     title: `${productCode} · ${movement.tankName ?? "Tank"}`,
     content: html`

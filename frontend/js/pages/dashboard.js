@@ -18,7 +18,7 @@ import { monthLabel, naira, number, pct, recentMonths } from "../core/format.js"
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
-import { bindHotspotClicks, loadTankMovements, mobileAssetsMarkup, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
+import { bindHotspotClicks, loadTankMovements, mobileAssetsMarkup, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankFillPct, tankHotspot, tankLiquidOverlay } from "../core/twin.js";
 import { fillTable, infoModal, tableError, tableLoading, toast, toastError } from "../core/ui.js";
 
 const ICON_PATHS = {
@@ -141,10 +141,11 @@ async function renderTwin(shownPumps, movementsById, dsrDay, receipt) {
   const pumpReadings = dsrDay?.readings ?? [];
   const pumpBlocks = shownPumps.map((p, i) => pumpHotspot(p, i, pumpReadings.find((r) => r.pumpName === p.name)));
   const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, movementsById.get(code)));
+  const liquidLayers = ["PMS", "AGO"].map((code) => tankLiquidOverlay(code, tankFillPct(movementsById.get(code))));
 
   setHtml(
     $("#twinCanvas"),
-    html`${stationScene("Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks")}${receiptHotspot(receipt)}${pumpBlocks}${tankBlocks}`,
+    html`${stationScene("Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks")}${liquidLayers}${receiptHotspot(receipt)}${pumpBlocks}${tankBlocks}`,
   );
   setHtml($("#twinMobileAssets"), mobileAssetsMarkup(shownPumps, movementsById, pumpReadings, receipt));
 }
