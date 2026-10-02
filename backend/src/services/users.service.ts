@@ -9,8 +9,9 @@
  */
 import { and, count, eq, inArray, isNull, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { hashPassword } from "../auth/password.ts";
+import { assertCompanyAccess, companyFilter, isPlatformAdmin } from "../auth/scope.ts";
 import { db, selectRows, type Executor, type Tx } from "../db/client.ts";
-import { permissions, rolePermissions, roles, sessions, stations, userRoles, users } from "../db/schema/index.ts";
+import { companies, permissions, rolePermissions, roles, sessions, stations, userRoles, users } from "../db/schema/index.ts";
 import type { Actor } from "../types.ts";
 import { AppError, conflict, notFound } from "../utils/errors.ts";
 import { paginationMeta } from "../utils/http.ts";
@@ -19,8 +20,15 @@ import { likeContains } from "../utils/sql.ts";
 import { recordAudit } from "./audit.service.ts";
 import { issuePasswordReset } from "./auth.service.ts";
 
-/** Throws (rolling back the transaction) if no active user could still administer access. */
-export async function assertAdministratorsRemain(tx: Tx): Promise<void> {
+/**
+ * Throws (rolling back the transaction) if no active user could still
+ * administer access — scoped per company, since each company must always
+ * keep its own administrator. A platform super-admin (company_id IS NULL)
+ * always counts too, in every company, since they can always step in.
+ * `companyId: null` checks the platform level itself (at least one active
+ * platform super-admin must remain).
+ */
+export async function assertAdministratorsRemain(tx: Tx, companyId: number | null): Promise<void> {
   const rows = await selectRows<{ code: string; n: number }>(
     tx,
     sql`SELECT p.code, COUNT(DISTINCT u.id) AS n
@@ -29,11 +37,33 @@ export async function assertAdministratorsRemain(tx: Tx): Promise<void> {
         JOIN role_permissions rp ON rp.role_id = ur.role_id
         JOIN permissions p ON p.id = rp.permission_id
         WHERE u.status = 'active' AND u.deleted_at IS NULL AND p.code IN ('users.manage', 'roles.manage')
+          AND (u.company_id IS NULL ${companyId !== null ? sql`OR u.company_id = ${companyId}` : sql``})
         GROUP BY p.code`,
   );
   const has = (code: string) => num(rows.find((r) => r.code === code)?.n) > 0;
   if (!has("users.manage") || !has("roles.manage")) {
-    throw conflict("This change would leave no active user able to manage users and roles.");
+    throw conflict(
+      companyId !== null
+        ? "This change would leave no active user able to manage users and roles for this company."
+        : "This change would leave no active platform administrator able to manage users and roles.",
+    );
+  }
+}
+
+/**
+ * A role's permissions are shared by every company whose users hold it, so
+ * editing a shared role (e.g. removing `users.manage` from it) can empty out
+ * several companies' admin access in one go. Checks every company that
+ * currently has an active user, one at a time — rolling back the whole
+ * transaction if even one would be left without an administrator.
+ */
+export async function assertAdministratorsRemainEverywhere(tx: Tx): Promise<void> {
+  const companyIds = await selectRows<{ company_id: number | null }>(
+    tx,
+    sql`SELECT DISTINCT company_id FROM users WHERE status = 'active' AND deleted_at IS NULL`,
+  );
+  for (const row of companyIds) {
+    await assertAdministratorsRemain(tx, row.company_id);
   }
 }
 
@@ -69,10 +99,25 @@ async function roleNames(tx: Tx, roleIds: number[]) {
   return rows.map((r) => r.name).sort();
 }
 
-async function assertStation(tx: Tx, stationId: number | null | undefined) {
+/** A station must exist and belong to the same company the user is being assigned to (null companyId = platform admin, who may only be left without a station). */
+async function assertStation(tx: Tx, companyId: number | null, stationId: number | null | undefined) {
   if (!stationId) return;
-  const [s] = await tx.select({ id: stations.id }).from(stations).where(eq(stations.id, stationId));
-  if (!s) throw new AppError("VALIDATION_ERROR", "Select a valid station.", { fields: { stationId: "Select a valid station." } });
+  if (companyId === null) {
+    throw new AppError("VALIDATION_ERROR", "A platform administrator (no company) cannot be assigned a single station.", {
+      fields: { stationId: "Not applicable without a company." },
+    });
+  }
+  const [s] = await tx.select({ id: stations.id }).from(stations).where(and(eq(stations.id, stationId), eq(stations.companyId, companyId)));
+  if (!s) throw new AppError("VALIDATION_ERROR", "Select a valid station for this company.", { fields: { stationId: "Select a valid station for this company." } });
+}
+
+/** Resolves which company a new/edited user actually belongs to, enforcing that only the platform super-admin may choose. */
+function resolveTargetCompany(actor: Actor, requested: number | null | undefined): number | null {
+  if (isPlatformAdmin(actor)) return requested ?? null;
+  if (requested !== undefined && requested !== actor.companyId) {
+    throw new AppError("FORBIDDEN", "You can only create or edit users within your own company.");
+  }
+  return actor.companyId;
 }
 
 const userColumns = {
@@ -81,6 +126,8 @@ const userColumns = {
   fullName: users.fullName,
   email: users.email,
   phone: users.phone,
+  companyId: users.companyId,
+  companyName: companies.name,
   stationId: users.stationId,
   stationName: stations.name,
   status: users.status,
@@ -100,12 +147,17 @@ function present<T extends { roleIds: string | null; lockedUntil: Date | null }>
   };
 }
 
-export async function listUsers(q: { search?: string; stationId?: number; roleId?: number; status?: "active" | "suspended"; page: number; limit: number }) {
+export async function listUsers(
+  actor: Actor,
+  q: { search?: string; companyId?: number; stationId?: number; roleId?: number; status?: "active" | "suspended"; page: number; limit: number },
+) {
   const conds: SQL[] = [isNull(users.deletedAt)];
   if (q.search) {
     const p = likeContains(q.search);
     conds.push(or(like(users.fullName, p), like(users.username, p), like(users.email, p))!);
   }
+  const company = companyFilter(actor, q.companyId);
+  if (company !== null) conds.push(eq(users.companyId, company));
   if (q.stationId) conds.push(eq(users.stationId, q.stationId));
   if (q.status) conds.push(eq(users.status, q.status));
   if (q.roleId) conds.push(sql`EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = ${users.id} AND ur.role_id = ${q.roleId})`);
@@ -116,6 +168,7 @@ export async function listUsers(q: { search?: string; stationId?: number; roleId
       .select(userColumns)
       .from(users)
       .leftJoin(stations, eq(stations.id, users.stationId))
+      .leftJoin(companies, eq(companies.id, users.companyId))
       .where(where)
       .orderBy(users.status, users.fullName)
       .limit(q.limit)
@@ -125,30 +178,46 @@ export async function listUsers(q: { search?: string; stationId?: number; roleId
   return { rows: rows.map(present), pagination: paginationMeta(q.page, q.limit, total?.n ?? 0) };
 }
 
-export async function getUser(id: number) {
+export async function getUser(actor: Actor, id: number) {
   const [row] = await db
     .select(userColumns)
     .from(users)
     .leftJoin(stations, eq(stations.id, users.stationId))
+    .leftJoin(companies, eq(companies.id, users.companyId))
     .where(and(eq(users.id, id), isNull(users.deletedAt)))
     .limit(1);
   if (!row) throw notFound("User");
+  assertCompanyAccess(actor, row.companyId, "User");
   return present(row);
 }
 
 export async function createUser(
   actor: Actor,
-  input: { username: string; fullName: string; email?: string | null; phone?: string | null; stationId?: number | null; roleIds: number[]; password: string },
+  input: {
+    username: string;
+    fullName: string;
+    email?: string | null;
+    phone?: string | null;
+    companyId?: number | null;
+    stationId?: number | null;
+    roleIds: number[];
+    password: string;
+  },
 ) {
+  const companyId = resolveTargetCompany(actor, input.companyId);
   const passwordHash = await hashPassword(input.password);
   const id = await db.transaction(async (tx) => {
+    if (companyId !== null) {
+      const [company] = await tx.select({ id: companies.id }).from(companies).where(eq(companies.id, companyId));
+      if (!company) throw new AppError("VALIDATION_ERROR", "Select a valid company.", { fields: { companyId: "Select a valid company." } });
+    }
     const [byUsername] = await tx.select({ id: users.id }).from(users).where(eq(users.username, input.username));
     if (byUsername) throw new AppError("CONFLICT", `Username ${input.username} is already taken.`, { fields: { username: "Username already taken." } });
     if (input.email) {
       const [byEmail] = await tx.select({ id: users.id }).from(users).where(eq(users.email, input.email));
       if (byEmail) throw new AppError("CONFLICT", "That email address is already in use.", { fields: { email: "Email already in use." } });
     }
-    await assertStation(tx, input.stationId);
+    await assertStation(tx, companyId, input.stationId);
     const names = await roleNames(tx, input.roleIds);
     assertWithinActorAccess(actor, await permissionsOfRoles(tx, input.roleIds), "You cannot assign a role that grants access you do not have.");
 
@@ -159,6 +228,7 @@ export async function createUser(
         fullName: input.fullName,
         email: input.email ?? null,
         phone: input.phone ?? null,
+        companyId,
         stationId: input.stationId ?? null,
         passwordHash,
         mustChangePassword: true,
@@ -174,11 +244,11 @@ export async function createUser(
       resourceId: userId,
       recordRef: input.username,
       stationId: input.stationId ?? null,
-      newValue: { username: input.username, fullName: input.fullName, email: input.email ?? null, stationId: input.stationId ?? null, roles: names },
+      newValue: { username: input.username, fullName: input.fullName, email: input.email ?? null, companyId, stationId: input.stationId ?? null, roles: names },
     });
     return userId;
   });
-  return getUser(id);
+  return getUser(actor, id);
 }
 
 export async function updateUser(
@@ -189,13 +259,14 @@ export async function updateUser(
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
     if (!user) throw notFound("User");
+    assertCompanyAccess(actor, user.companyId, "User");
     if (id === actor.id && input.status === "suspended") throw new AppError("FORBIDDEN", "You cannot suspend your own account.");
     assertWithinActorAccess(actor, await permissionsOfUser(tx, id), OUTRANKED);
     if (input.email && input.email !== user.email) {
       const [byEmail] = await tx.select({ id: users.id }).from(users).where(and(eq(users.email, input.email), ne(users.id, id)));
       if (byEmail) throw new AppError("CONFLICT", "That email address is already in use.", { fields: { email: "Email already in use." } });
     }
-    if (input.stationId !== undefined) await assertStation(tx, input.stationId);
+    if (input.stationId !== undefined) await assertStation(tx, user.companyId, input.stationId);
 
     const { roleIds, ...fields } = input;
     const patch = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));
@@ -223,7 +294,7 @@ export async function updateUser(
     if (input.status === "suspended" && user.status !== "suspended") {
       await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, id), isNull(sessions.revokedAt)));
     }
-    await assertAdministratorsRemain(tx);
+    await assertAdministratorsRemain(tx, user.companyId);
     await recordAudit(tx, actor, {
       action: rolesChanged ? "permissions_changed" : "updated",
       resource: "user",
@@ -234,19 +305,20 @@ export async function updateUser(
       newValue,
     });
   });
-  return getUser(id);
+  return getUser(actor, id);
 }
 
 export async function deleteUser(actor: Actor, id: number) {
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
     if (!user) throw notFound("User");
+    assertCompanyAccess(actor, user.companyId, "User");
     if (id === actor.id) throw new AppError("FORBIDDEN", "You cannot delete your own account.");
     assertWithinActorAccess(actor, await permissionsOfUser(tx, id), OUTRANKED);
     const now = new Date();
     await tx.update(users).set({ deletedAt: now, status: "suspended" }).where(eq(users.id, id));
     await tx.update(sessions).set({ revokedAt: now }).where(and(eq(sessions.userId, id), isNull(sessions.revokedAt)));
-    await assertAdministratorsRemain(tx);
+    await assertAdministratorsRemain(tx, user.companyId);
     await recordAudit(tx, actor, {
       action: "deleted",
       resource: "user",
@@ -263,6 +335,7 @@ export async function unlockUser(actor: Actor, id: number) {
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
     if (!user) throw notFound("User");
+    assertCompanyAccess(actor, user.companyId, "User");
     await tx.update(users).set({ failedLoginCount: 0, lockedUntil: null }).where(eq(users.id, id));
     await recordAudit(tx, actor, {
       action: "updated",
@@ -273,13 +346,14 @@ export async function unlockUser(actor: Actor, id: number) {
       newValue: { unlocked: true },
     });
   });
-  return getUser(id);
+  return getUser(actor, id);
 }
 
 /** A reset link hands over the account, so the same no-escalation rule applies. */
 export async function issueUserPasswordReset(actor: Actor, id: number) {
-  const [user] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).limit(1);
+  const [user] = await db.select({ id: users.id, companyId: users.companyId }).from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).limit(1);
   if (!user) throw notFound("User");
+  assertCompanyAccess(actor, user.companyId, "User");
   assertWithinActorAccess(actor, await permissionsOfUser(db, id), OUTRANKED);
   return issuePasswordReset(actor, id);
 }

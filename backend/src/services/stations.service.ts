@@ -4,9 +4,9 @@
  * (DSR readings are taken per pump; each pump draws from one tank).
  */
 import { and, asc, count, eq, isNull, ne, sql } from "drizzle-orm";
-import { assertStationAccess } from "../auth/scope.ts";
+import { assertStationAndCompanyAccess, companyFilter, isPlatformAdmin } from "../auth/scope.ts";
 import { db, selectRows, type Tx } from "../db/client.ts";
-import { dsrDays, dsrReadings, products, pumps, stations, tanks, users } from "../db/schema/index.ts";
+import { companies, dsrDays, dsrReadings, products, pumps, stations, tanks, users } from "../db/schema/index.ts";
 import { assertDayNotClosed, assertNotFuture } from "../repositories/locks.repo.ts";
 import { postMovements, tankBalances } from "../repositories/stock.repo.ts";
 import type { Actor } from "../types.ts";
@@ -17,11 +17,13 @@ import { recordAudit } from "./audit.service.ts";
 
 interface StationRow {
   id: number;
+  company_id: number;
   code: string;
   name: string;
   address: string | null;
   manager_user_id: number | null;
   manager_name: string | null;
+  photo_url: string | null;
   cash_tolerance: number;
   stock_tolerance: number;
   status: "active" | "inactive";
@@ -31,26 +33,34 @@ interface StationRow {
 }
 
 export async function listStations(actor: Actor) {
+  const company = companyFilter(actor);
+  const conds = [];
+  if (company !== null) conds.push(sql`s.company_id = ${company}`);
+  if (actor.stationId !== null) conds.push(sql`s.id = ${actor.stationId}`);
+  const where = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+
   const rows = await selectRows<StationRow>(
     db,
-    sql`SELECT s.id, s.code, s.name, s.address, s.manager_user_id, u.full_name AS manager_name,
-               s.cash_tolerance, s.stock_tolerance, s.status,
+    sql`SELECT s.id, s.company_id, s.code, s.name, s.address, s.manager_user_id, u.full_name AS manager_name,
+               s.photo_url, s.cash_tolerance, s.stock_tolerance, s.status,
                (SELECT COUNT(*) FROM pumps p WHERE p.station_id = s.id AND p.status = 'active') AS pump_count,
                (SELECT COUNT(*) FROM tanks t WHERE t.station_id = s.id AND t.status = 'active') AS tank_count,
                (SELECT GROUP_CONCAT(DISTINCT pr.code ORDER BY pr.code SEPARATOR ', ')
                   FROM tanks t JOIN products pr ON pr.id = t.product_id
                  WHERE t.station_id = s.id AND t.status = 'active') AS products
         FROM stations s LEFT JOIN users u ON u.id = s.manager_user_id
-        ${actor.stationId !== null ? sql`WHERE s.id = ${actor.stationId}` : sql``}
+        ${where}
         ORDER BY s.status, s.name`,
   );
   return rows.map((r) => ({
     id: r.id,
+    companyId: r.company_id,
     code: r.code,
     name: r.name,
     address: r.address,
     managerUserId: r.manager_user_id,
     managerName: r.manager_name,
+    photoUrl: r.photo_url,
     cashTolerance: num(r.cash_tolerance),
     stockTolerance: num(r.stock_tolerance),
     status: r.status,
@@ -61,8 +71,10 @@ export async function listStations(actor: Actor) {
 }
 
 export async function getStation(actor: Actor, id: number) {
-  assertStationAccess(actor, id, "Station");
-  const [station] = (await listStations({ ...actor, stationId: id })).filter((s) => s.id === id);
+  const [row] = await db.select({ companyId: stations.companyId, stationId: stations.id }).from(stations).where(eq(stations.id, id));
+  if (!row) throw notFound("Station");
+  assertStationAndCompanyAccess(actor, row.companyId, row.stationId, "Station");
+  const [station] = (await listStations({ ...actor, companyId: row.companyId, stationId: id })).filter((s) => s.id === id);
   if (!station) throw notFound("Station");
 
   const tankRows = await db
@@ -109,27 +121,47 @@ async function assertManager(tx: Tx, managerUserId: number | null | undefined) {
 
 export async function createStation(
   actor: Actor,
-  input: { code: string; name: string; address?: string | null; managerUserId?: number | null; cashTolerance: number; stockTolerance: number },
+  input: {
+    companyId?: number | null;
+    code: string;
+    name: string;
+    address?: string | null;
+    managerUserId?: number | null;
+    photoUrl?: string | null;
+    cashTolerance: number;
+    stockTolerance: number;
+  },
 ) {
+  // Non-platform actors can only ever create a station in their own company;
+  // the field is only meaningful (and required) for the platform super-admin.
+  const companyId = isPlatformAdmin(actor) ? input.companyId : actor.companyId;
+  if (!companyId) {
+    throw new AppError("VALIDATION_ERROR", "Select a company.", { fields: { companyId: "Select a company." } });
+  }
+
   const id = await db.transaction(async (tx) => {
-    const [byCode] = await tx.select({ id: stations.id }).from(stations).where(eq(stations.code, input.code));
+    const [company] = await tx.select({ id: companies.id }).from(companies).where(eq(companies.id, companyId));
+    if (!company) throw new AppError("VALIDATION_ERROR", "Select a valid company.", { fields: { companyId: "Select a valid company." } });
+    const [byCode] = await tx.select({ id: stations.id }).from(stations).where(and(eq(stations.companyId, companyId), eq(stations.code, input.code)));
     if (byCode) throw new AppError("CONFLICT", `Station code ${input.code} is already in use.`, { fields: { code: "Code already in use." } });
-    const [byName] = await tx.select({ id: stations.id }).from(stations).where(eq(stations.name, input.name));
+    const [byName] = await tx.select({ id: stations.id }).from(stations).where(and(eq(stations.companyId, companyId), eq(stations.name, input.name)));
     if (byName) throw new AppError("CONFLICT", `A station named ${input.name} already exists.`, { fields: { name: "Name already in use." } });
     await assertManager(tx, input.managerUserId);
 
     const [inserted] = await tx
       .insert(stations)
       .values({
+        companyId,
         code: input.code,
         name: input.name,
         address: input.address ?? null,
         managerUserId: input.managerUserId ?? null,
+        photoUrl: input.photoUrl ?? null,
         cashTolerance: input.cashTolerance,
         stockTolerance: input.stockTolerance,
       })
       .$returningId();
-    await recordAudit(tx, actor, { action: "created", resource: "station", resourceId: inserted!.id, recordRef: input.code, stationId: inserted!.id, newValue: input });
+    await recordAudit(tx, actor, { action: "created", resource: "station", resourceId: inserted!.id, recordRef: input.code, stationId: inserted!.id, newValue: { ...input, companyId } });
     return inserted!.id;
   });
   return getStation(actor, id);
@@ -138,13 +170,25 @@ export async function createStation(
 export async function updateStation(
   actor: Actor,
   id: number,
-  input: { name?: string; address?: string | null; managerUserId?: number | null; cashTolerance?: number; stockTolerance?: number; status?: "active" | "inactive" },
+  input: {
+    name?: string;
+    address?: string | null;
+    managerUserId?: number | null;
+    photoUrl?: string | null;
+    cashTolerance?: number;
+    stockTolerance?: number;
+    status?: "active" | "inactive";
+  },
 ) {
   await db.transaction(async (tx) => {
     const [station] = await tx.select().from(stations).where(eq(stations.id, id)).for("update");
     if (!station) throw notFound("Station");
+    assertStationAndCompanyAccess(actor, station.companyId, station.id, "Station");
     if (input.name && input.name !== station.name) {
-      const [byName] = await tx.select({ id: stations.id }).from(stations).where(and(eq(stations.name, input.name), ne(stations.id, id)));
+      const [byName] = await tx
+        .select({ id: stations.id })
+        .from(stations)
+        .where(and(eq(stations.companyId, station.companyId), eq(stations.name, input.name), ne(stations.id, id)));
       if (byName) throw new AppError("CONFLICT", `A station named ${input.name} already exists.`, { fields: { name: "Name already in use." } });
     }
     await assertManager(tx, input.managerUserId);
@@ -173,8 +217,9 @@ export async function createTank(
   input: { productId: number; name: string; capacity?: number | null; openingStock: number; openingDate?: string },
 ) {
   await db.transaction(async (tx) => {
-    const [station] = await tx.select({ code: stations.code, status: stations.status }).from(stations).where(eq(stations.id, stationId));
+    const [station] = await tx.select({ code: stations.code, status: stations.status, companyId: stations.companyId }).from(stations).where(eq(stations.id, stationId));
     if (!station) throw notFound("Station");
+    assertStationAndCompanyAccess(actor, station.companyId, stationId, "Station");
     const [product] = await tx.select({ code: products.code, status: products.status }).from(products).where(eq(products.id, input.productId));
     if (!product || product.status !== "active") throw new AppError("VALIDATION_ERROR", "Select an active product.", { fields: { productId: "Select an active product." } });
     const [dup] = await tx.select({ id: tanks.id }).from(tanks).where(and(eq(tanks.stationId, stationId), eq(tanks.name, input.name)));
@@ -221,6 +266,8 @@ export async function updateTank(actor: Actor, tankId: number, input: { name?: s
   const stationId = await db.transaction(async (tx) => {
     const [tank] = await tx.select().from(tanks).where(eq(tanks.id, tankId)).for("update");
     if (!tank) throw notFound("Tank");
+    const [tankStation] = await tx.select({ companyId: stations.companyId }).from(stations).where(eq(stations.id, tank.stationId));
+    assertStationAndCompanyAccess(actor, tankStation!.companyId, tank.stationId, "Tank");
     if (input.name && input.name !== tank.name) {
       const [dup] = await tx.select({ id: tanks.id }).from(tanks).where(and(eq(tanks.stationId, tank.stationId), eq(tanks.name, input.name), ne(tanks.id, tankId)));
       if (dup) throw new AppError("CONFLICT", `${input.name} already exists at this station.`, { fields: { name: "Tank name already in use at this station." } });
@@ -254,8 +301,9 @@ async function assertTankAtStation(tx: Tx, tankId: number, stationId: number) {
 
 export async function createPump(actor: Actor, stationId: number, input: { tankId: number; name: string; meterLabel?: string | null; initialReading: number }) {
   await db.transaction(async (tx) => {
-    const [station] = await tx.select({ code: stations.code }).from(stations).where(eq(stations.id, stationId));
+    const [station] = await tx.select({ code: stations.code, companyId: stations.companyId }).from(stations).where(eq(stations.id, stationId));
     if (!station) throw notFound("Station");
+    assertStationAndCompanyAccess(actor, station.companyId, stationId, "Station");
     await assertTankAtStation(tx, input.tankId, stationId);
     const [dup] = await tx.select({ id: pumps.id }).from(pumps).where(and(eq(pumps.stationId, stationId), eq(pumps.name, input.name)));
     if (dup) throw new AppError("CONFLICT", `${input.name} already exists at this station.`, { fields: { name: "Pump name already in use at this station." } });
@@ -284,6 +332,8 @@ export async function updatePump(
   const stationId = await db.transaction(async (tx) => {
     const [pump] = await tx.select().from(pumps).where(eq(pumps.id, pumpId)).for("update");
     if (!pump) throw notFound("Pump");
+    const [pumpStation] = await tx.select({ companyId: stations.companyId }).from(stations).where(eq(stations.id, pump.stationId));
+    assertStationAndCompanyAccess(actor, pumpStation!.companyId, pump.stationId, "Pump");
 
     const [openReading] = await tx
       .select({ n: count() })

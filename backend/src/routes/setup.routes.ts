@@ -1,6 +1,7 @@
-/** Setup API: stations, tanks, pumps, products & prices, narrations, banks, users, roles and settings. */
+/** Setup API: companies, stations, tanks, pumps, products & prices, narrations, banks, users, roles and settings. */
 import { Hono } from "hono";
 import { requireAnyPermission, requireAuth, requirePermission } from "../middleware/auth.ts";
+import * as companiesService from "../services/companies.service.ts";
 import * as master from "../services/masterdata.service.ts";
 import * as rolesService from "../services/roles.service.ts";
 import { getSettings, settingsUpdateSchema, updateSettings } from "../services/settings.service.ts";
@@ -11,6 +12,8 @@ import { created, ok, paged, readId, readJson, readQuery } from "../utils/http.t
 import {
   bankCreateSchema,
   bankUpdateSchema,
+  companyCreateSchema,
+  companyUpdateSchema,
   narrationCreateSchema,
   narrationUpdateSchema,
   priceCreateSchema,
@@ -28,6 +31,22 @@ import {
   userListQuery,
   userUpdateSchema,
 } from "../validators/setup.ts";
+
+/* Companies (platform super-admin only) ------------------------------------------ */
+
+export const companyRoutes = new Hono<AppEnv>();
+companyRoutes.use(requireAuth);
+
+companyRoutes.get("/", requirePermission("companies.view"), async (c) => ok(c, await companiesService.listCompanies()));
+companyRoutes.post("/", requirePermission("companies.manage"), async (c) => {
+  const input = await readJson(c, companyCreateSchema);
+  return created(c, await companiesService.createCompany(c.get("actor"), input), "Company created.");
+});
+companyRoutes.get("/:id", requirePermission("companies.view"), async (c) => ok(c, await companiesService.getCompany(readId(c))));
+companyRoutes.patch("/:id", requirePermission("companies.manage"), async (c) => {
+  const input = await readJson(c, companyUpdateSchema);
+  return ok(c, await companiesService.updateCompany(c.get("actor"), readId(c), input), "Company updated.");
+});
 
 /* Stations, tanks, pumps --------------------------------------------------------- */
 
@@ -118,12 +137,12 @@ bankRoutes.patch("/:id", requirePermission("banks.manage"), async (c) => {
 export const userRoutes = new Hono<AppEnv>();
 userRoutes.use(requireAuth);
 
-userRoutes.get("/", requirePermission("users.view"), async (c) => paged(c, await usersService.listUsers(readQuery(c, userListQuery))));
+userRoutes.get("/", requirePermission("users.view"), async (c) => paged(c, await usersService.listUsers(c.get("actor"), readQuery(c, userListQuery))));
 userRoutes.post("/", requirePermission("users.manage"), async (c) => {
   const input = await readJson(c, userCreateSchema);
   return created(c, await usersService.createUser(c.get("actor"), input), "User created — they must change the temporary password at first sign-in.");
 });
-userRoutes.get("/:id", requirePermission("users.view"), async (c) => ok(c, await usersService.getUser(readId(c))));
+userRoutes.get("/:id", requirePermission("users.view"), async (c) => ok(c, await usersService.getUser(c.get("actor"), readId(c))));
 userRoutes.patch("/:id", requirePermission("users.manage"), async (c) => {
   const input = await readJson(c, userUpdateSchema);
   return ok(c, await usersService.updateUser(c.get("actor"), readId(c), input), "User updated.");

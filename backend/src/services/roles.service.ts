@@ -10,7 +10,7 @@ import { permissions, rolePermissions, roles, userRoles } from "../db/schema/ind
 import type { Actor } from "../types.ts";
 import { AppError, conflict, notFound } from "../utils/errors.ts";
 import { recordAudit } from "./audit.service.ts";
-import { assertAdministratorsRemain, assertWithinActorAccess, permissionsOfRoles } from "./users.service.ts";
+import { assertAdministratorsRemainEverywhere, assertWithinActorAccess, permissionsOfRoles } from "./users.service.ts";
 
 const BEYOND_OWN = "You cannot grant permissions you do not have.";
 const OUTRANKED = "You cannot change a role that has access you do not have.";
@@ -106,7 +106,7 @@ export async function updateRole(actor: Actor, id: number, input: { name?: strin
         const ids = await permissionIds(tx, next);
         await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, id));
         if (ids.length > 0) await tx.insert(rolePermissions).values(ids.map((permissionId) => ({ roleId: id, permissionId })));
-        await assertAdministratorsRemain(tx);
+        await assertAdministratorsRemainEverywhere(tx);
       }
     }
     await recordAudit(tx, actor, {

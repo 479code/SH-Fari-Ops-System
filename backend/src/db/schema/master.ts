@@ -2,24 +2,34 @@
 import { bigint, index, mysqlEnum, mysqlTable, text, uniqueIndex, varchar, type AnyMySqlColumn } from "drizzle-orm/mysql-core";
 import { businessDate, createdAt, fk, id, money, unitPrice, updatedAt, volume } from "./columns.ts";
 import { users } from "./auth.ts";
+import { companies } from "./tenancy.ts";
 
 const activeStatus = () => mysqlEnum(["active", "inactive"]).notNull().default("active");
 
-export const stations = mysqlTable("stations", {
-  id: id(),
-  /** Short code used in document references, e.g. DSR-LA-20260913. */
-  code: varchar({ length: 10 }).notNull().unique(),
-  name: varchar({ length: 120 }).notNull().unique(),
-  address: varchar({ length: 255 }),
-  managerUserId: fk().references((): AnyMySqlColumn => users.id, { onDelete: "set null" }),
-  /** Cash variance (₦) above which a reconciliation is flagged. */
-  cashTolerance: money().notNull().default(0),
-  /** Physical-dip variance (litres, ±) above which a tank is flagged. */
-  stockTolerance: volume().notNull().default(0),
-  status: activeStatus(),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const stations = mysqlTable(
+  "stations",
+  {
+    id: id(),
+    companyId: fk()
+      .notNull()
+      .references(() => companies.id),
+    /** Short code used in document references, e.g. DSR-LA-20260913. Unique within the company, not globally. */
+    code: varchar({ length: 10 }).notNull(),
+    name: varchar({ length: 120 }).notNull(),
+    address: varchar({ length: 255 }),
+    managerUserId: fk().references((): AnyMySqlColumn => users.id, { onDelete: "set null" }),
+    /** Public URL/path of this station's illustration photo. Falls back to the app default when null. */
+    photoUrl: varchar({ length: 255 }),
+    /** Cash variance (₦) above which a reconciliation is flagged. */
+    cashTolerance: money().notNull().default(0),
+    /** Physical-dip variance (litres, ±) above which a tank is flagged. */
+    stockTolerance: volume().notNull().default(0),
+    status: activeStatus(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("stations_company_code_uq").on(t.companyId, t.code), uniqueIndex("stations_company_name_uq").on(t.companyId, t.name)],
+);
 
 export const products = mysqlTable("products", {
   id: id(),
