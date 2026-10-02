@@ -52,12 +52,3 @@ ALTER TABLE `stations` ADD CONSTRAINT `stations_company_name_uq` UNIQUE(`company
 ALTER TABLE `stations` ADD CONSTRAINT `stations_company_id_companies_id_fk` FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `users` ADD CONSTRAINT `users_company_id_companies_id_fk` FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX `users_company_idx` ON `users` (`company_id`);
-
--- ---------------------------------------------------------------------------
--- MANUAL FOLLOW-UP (run once, after this migration, by hand):
---
---   UPDATE users SET company_id = NULL WHERE username = '<your admin username>';
---
--- That is what makes an account the platform super-admin (sees every
--- company). Nobody is set to NULL automatically — you choose who.
--- ---------------------------------------------------------------------------
