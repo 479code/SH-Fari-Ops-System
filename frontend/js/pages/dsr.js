@@ -6,7 +6,7 @@ import { dateTime, litres, naira, price } from "../core/format.js";
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, defaultStationId, today } from "../core/state.js";
-import { bindHotspotClicks, loadTankMovements, mobileAssetsMarkup, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
+import { bindHotspotClicks, loadTankStatus, mobileAssetsMarkup, pumpHotspot, renderOverflowInto, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot, tankInteriorOverlay } from "../core/twin.js";
 import { fillTable, formModal, reasonModal, showFieldErrors, tableError, tableLoading, toast, toastError, withBusy } from "../core/ui.js";
 
 const STATUS = {
@@ -17,7 +17,7 @@ const STATUS = {
 
 let day = null;
 let dirty = false;
-let currentMovementsByProduct = new Map();
+let currentTanksByProduct = new Map();
 
 const editable = () => day?.status === "open" && can("dsr.record");
 
@@ -55,21 +55,22 @@ async function renderStationIllustration() {
   const allTanks = [...shownTanks, ...overflowTanks];
 
   const pumpBlocks = shownPumps.map((p, i) => pumpHotspot(p, i, pumpReadings.find((r) => r.pumpName === p.name)));
-  const { byTankId, byProduct } = await loadTankMovements(stationId, allTanks, date);
+  const { byId: tanksById, byProduct: tanksByProduct } = await loadTankStatus(stationId, allTanks);
 
   // Station or date may have changed while the tank fetch was in flight — a stale render would show the wrong station's numbers.
   if (Number($("#dsrStation").value) !== stationId || $("#dsrDate").value !== date) return;
 
-  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, byProduct.get(code)));
-  currentMovementsByProduct = byProduct;
+  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, tanksByProduct.get(code)));
+  const tankGraphics = tankInteriorOverlay(tanksByProduct.get("PMS"), tanksByProduct.get("AGO"));
+  currentTanksByProduct = tanksByProduct;
   setHtml(
     $("#dsrCanvas"),
     shownPumps.length || shownTanks.length
-      ? html`${stationScene("Illustrative pump and tank layout for this station")}${pumpBlocks}${tankBlocks}`
+      ? html`${stationScene("Illustrative pump and tank layout for this station")}${tankGraphics}${pumpBlocks}${tankBlocks}`
       : html`<div class="chart-empty">No active pumps or tanks at this station — register them in Setup.</div>`,
   );
-  setHtml($("#dsrMobileAssets"), mobileAssetsMarkup(shownPumps, byProduct, pumpReadings, null));
-  renderOverflowInto($("#dsrOverflow"), overflowPumps, overflowTanks, { movementsByTankId: byTankId, pumpReadings });
+  setHtml($("#dsrMobileAssets"), mobileAssetsMarkup(shownPumps, tanksByProduct, pumpReadings, null));
+  renderOverflowInto($("#dsrOverflow"), overflowPumps, overflowTanks, { tanksById, pumpReadings });
 }
 
 function highlightPumpCard(pumpId) {
@@ -192,7 +193,7 @@ export default {
     });
 
     const hotspotHandlers = {
-      onTankClick: (code) => tankDetailModal(code, currentMovementsByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId: Number($("#dsrStation").value) }) }),
+      onTankClick: (code) => tankDetailModal(code, currentTanksByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId: Number($("#dsrStation").value) }) }),
       onPumpClick: highlightPumpCard,
     };
     bindHotspotClicks($("#dsrCanvas"), hotspotHandlers);

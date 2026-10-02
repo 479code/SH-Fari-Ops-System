@@ -783,6 +783,15 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   object-position: center;
   z-index: -1;
 }
+.tank-interior{position:absolute;z-index:1;background:none;border:0;padding:0;cursor:pointer;transition:filter .2s;}
+.tank-interior:hover{filter:brightness(1.07);}
+.tank-interior-0{left:24.1%;top:66.1%;width:26.3%;height:17.1%;transform:rotate(-1deg);}
+.tank-interior-1{left:55.4%;top:65.9%;width:22%;height:16.3%;transform:rotate(-.5deg);}
+.recorded-liquid{width:100%;height:100%;display:block;overflow:visible;}
+.fluid-fill{transition:y .6s ease,height .6s ease;}
+.unknown-tank{display:grid;place-items:center;background:#dae3e4;color:#627986;font-size:11px;border-radius:30%;box-shadow:inset 0 0 15px #9daeb4;text-align:center;padding:10px;}
+.tank-level-preview{max-width:320px;height:130px;margin:5px auto 10px;}
+.tank-scale-note{font-size:10px;color:var(--text-3);text-align:center;margin-bottom:14px;}
 .asset-label {
   position: absolute;
   z-index: 3;
@@ -875,9 +884,6 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
 .tank-label.ago {
   right: 2%;
 }
-.tank-gauge{height:5px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:8px;}
-.tank-gauge-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;}
-.tank-gauge-fill.amber{background:var(--amber);}
 .tank-label .label-value {
   font-size: 20px;
   margin-bottom: 3px;
@@ -899,14 +905,20 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   margin: 8px -6px -6px;
   padding: 5px 6px;
   border-radius: 3px;
-  background: var(--red-bg);
   font-size: 9px;
-  color: var(--red);
   font-weight: 600;
 }
-.tank-label.ago .variance-label {
+.tank-label .variance-label.ok {
   background: var(--green-bg);
   color: var(--green);
+}
+.tank-label .variance-label.bad {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.tank-label .variance-label.warn {
+  background: var(--amber-bg);
+  color: #946a20;
 }
 .tank-label .variance-label svg {
   width: 12px;
@@ -966,7 +978,6 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
 .mobile-asset small.green{color:var(--green);}
 .mobile-asset small.red{color:var(--red);}
 .mobile-asset b{font-size:16px;font-weight:750;}
-.mobile-asset .tank-gauge{margin:2px 0;}
 @media(max-width:640px){
   .station-canvas,.twin-legend{display:none;}
   .mobile-assets{display:block;}

@@ -18,7 +18,7 @@ import { monthLabel, naira, number, pct, recentMonths } from "../core/format.js"
 import { navigate } from "../core/router.js";
 import { refreshBadges } from "../core/shell.js";
 import { can, currentMonth, defaultStationId, state, today } from "../core/state.js";
-import { bindHotspotClicks, loadTankMovements, mobileAssetsMarkup, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot } from "../core/twin.js";
+import { bindHotspotClicks, loadTankMovement, loadTankStatus, mobileAssetsMarkup, pumpDetailModal, pumpHotspot, receiptDetailModal, receiptHotspot, renderOverflowInto, signedNumber, splitStationForIllustration, stationScene, tankDetailModal, tankHotspot, tankInteriorOverlay } from "../core/twin.js";
 import { fillTable, infoModal, tableError, tableLoading, toast, toastError } from "../core/ui.js";
 
 const ICON_PATHS = {
@@ -39,7 +39,7 @@ let stationId = null;
 let exceptionItems = [];
 let currentDsrDay = null;
 let currentReceipt = null;
-let currentMovementsByProduct = new Map();
+let currentTanksByProduct = new Map();
 let summaryMonth = null;
 
 /* ---------------------------------------------------------------- Network */
@@ -137,20 +137,21 @@ function renderSwitcher() {
 
 /* ------------------------------------------------------------------ Twin */
 
-async function renderTwin(shownPumps, movementsById, dsrDay, receipt) {
+async function renderTwin(shownPumps, tanksByProduct, dsrDay, receipt) {
   const pumpReadings = dsrDay?.readings ?? [];
   const pumpBlocks = shownPumps.map((p, i) => pumpHotspot(p, i, pumpReadings.find((r) => r.pumpName === p.name)));
-  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, movementsById.get(code)));
+  const tankBlocks = ["PMS", "AGO"].map((code) => tankHotspot(code, tanksByProduct.get(code)));
+  const tankGraphics = tankInteriorOverlay(tanksByProduct.get("PMS"), tanksByProduct.get("AGO"));
 
   setHtml(
     $("#twinCanvas"),
-    html`${stationScene("Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks")}${receiptHotspot(receipt)}${pumpBlocks}${tankBlocks}`,
+    html`${stationScene("Illustrative station cutaway showing tanker receiving, fuel dispensers and underground tanks")}${tankGraphics}${receiptHotspot(receipt)}${pumpBlocks}${tankBlocks}`,
   );
-  setHtml($("#twinMobileAssets"), mobileAssetsMarkup(shownPumps, movementsById, pumpReadings, receipt));
+  setHtml($("#twinMobileAssets"), mobileAssetsMarkup(shownPumps, tanksByProduct, pumpReadings, receipt));
 }
 
-function renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay) {
-  renderOverflowInto($("#twinOverflow"), overflowPumps, overflowTanks, { movementsByTankId, pumpReadings: dsrDay?.readings ?? [] });
+function renderOverflow(overflowPumps, overflowTanks, tanksById, dsrDay) {
+  renderOverflowInto($("#twinOverflow"), overflowPumps, overflowTanks, { tanksById, pumpReadings: dsrDay?.readings ?? [] });
 }
 
 function renderEquation(movement) {
@@ -235,7 +236,7 @@ async function loadTwin() {
   const allTanks = [...shownTanks, ...overflowTanks];
   const date = today();
 
-  const [dsrDay, receiptRows, { byTankId: movementsByTankId, byProduct: movementsByProduct }, gitRows] = await Promise.all([
+  const [dsrDay, receiptRows, { byId: tanksById, byProduct: tanksByProduct }, gitRows] = await Promise.all([
     api
       .get("/dsr/day", { stationId, date })
       .then((r) => r.data)
@@ -244,22 +245,22 @@ async function loadTwin() {
       .get("/receipts", { stationId, status: "verified", sortOrder: "desc", limit: 1 })
       .then((r) => r.data)
       .catch(() => []),
-    loadTankMovements(stationId, allTanks, date),
+    loadTankStatus(stationId, allTanks),
     api
       .get("/git-orders", { stationId, status: "open", limit: 5 })
       .then((r) => r.data)
       .catch(() => []),
   ]);
 
-  await renderTwin(shownPumps, movementsByProduct, dsrDay, receiptRows[0] ?? null);
-  renderOverflow(overflowPumps, overflowTanks, movementsByTankId, dsrDay);
+  await renderTwin(shownPumps, tanksByProduct, dsrDay, receiptRows[0] ?? null);
+  renderOverflow(overflowPumps, overflowTanks, tanksById, dsrDay);
 
   currentDsrDay = dsrDay;
   currentReceipt = receiptRows[0] ?? null;
-  currentMovementsByProduct = movementsByProduct;
+  currentTanksByProduct = tanksByProduct;
 
   const equationTank = shownTanks[0] ?? overflowTanks[0] ?? null;
-  renderEquation(equationTank ? movementsByTankId.get(equationTank.id) : null);
+  renderEquation(await loadTankMovement(stationId, equationTank, date));
 
   const orders = gitRows ?? [];
   const featured = orders.find((o) => o.delayed) ?? orders.find((o) => o.status === "in_transit") ?? orders[0] ?? null;
@@ -328,7 +329,7 @@ export default {
     $("#twinLedgerLink").addEventListener("click", () => navigate("stock", { stationId }));
 
     const hotspotHandlers = {
-      onTankClick: (code) => tankDetailModal(code, currentMovementsByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId }) }),
+      onTankClick: (code) => tankDetailModal(code, currentTanksByProduct.get(code), { onOpenLedger: () => navigate("stock", { stationId }) }),
       onPumpClick: (id) => {
         const pump = pumpsFor(stationId).find((p) => p.id === id);
         if (!pump) return;

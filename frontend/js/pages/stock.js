@@ -70,13 +70,15 @@ async function loadTanks() {
   }
 }
 
-async function openTankFromCard(stationId, productId, tankId, capacity) {
+async function openTankFromCard(stationId, tankId) {
   try {
-    const { data: m } = await api.get("/stock/movement", { stationId, productId, tankId, date: $("#stDate").value });
-    tankDetailModal(m.productCode, { ...m, capacity: capacity || null }, {
+    const { data } = await api.get("/stock/tanks", { stationId });
+    const tank = data.find((t) => t.id === tankId);
+    if (!tank) return;
+    tankDetailModal(tank.productCode, tank, {
       onOpenLedger: () => {
-        $("#stStation").value = String(stationId);
-        $("#stProduct").value = String(productId);
+        $("#stStation").value = String(tank.stationId);
+        $("#stProduct").value = String(tank.productId);
         loadMovement();
         loadLedger();
         $("#stMovementBody").closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -168,7 +170,7 @@ export default {
 
     $("#stTankList").addEventListener("click", (e) => {
       const card = e.target.closest("[data-tank-id]");
-      if (card) openTankFromCard(Number(card.dataset.stationId), Number(card.dataset.productId), Number(card.dataset.tankId), Number(card.dataset.capacity) || null);
+      if (card) openTankFromCard(Number(card.dataset.stationId), Number(card.dataset.tankId));
     });
 
     $("#dpStation").addEventListener("change", () => {
