@@ -1283,3 +1283,65 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   color: var(--text-3);
   margin-top: 12px;
 }
+
+/* =====================================================================
+   RESPONSIVE OVERRIDES — keep this block LAST in the file.
+   Several layout rules (network, twin-layout, dashboard-bottom …) are
+   defined after the original media queries above, so those queries lost
+   to them on equal specificity and phones got the desktop grid. Rules here
+   come last, so they win.
+   ===================================================================== */
+@media (max-width: 1100px) {
+  .twin-layout, .dashboard-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 980px) {
+  .network { grid-template-columns: minmax(0, 1fr); }
+  .network-map { display: none; }
+  .network-top { grid-template-columns: 1fr 1fr; gap: 14px 0; }
+  .network-title { grid-column: 1 / -1; }
+  .network-stat { border-left: 0; border-top: 1px solid var(--border); padding: 10px 10px 0 0; }
+  .station-switcher { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (max-width: 700px) {
+  /* Phone shell: drop the icon rail; the menu button opens the full menu as a drawer. */
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .icon-rail { display: none; }
+  body.nav-open .sidebar { left: 0; width: min(280px, 84vw); height: 100vh; overflow-y: auto; box-shadow: 0 10px 40px #0e283f40; }
+
+  .page-head { flex-direction: column; align-items: stretch; }
+  .page-head .actions { flex-wrap: wrap; }
+  .page-head .actions .btn { flex: 1 1 auto; justify-content: center; }
+
+  .filter-row { display: grid; grid-template-columns: 1fr 1fr; padding: 14px; }
+  .filter-row .spacer { display: none; }
+  .filter-row .select, .filter-row .input, .filter-row .search, .filter-row .search input { width: 100%; min-width: 0; }
+  .filter-row .search { grid-column: 1 / -1; }
+
+  /* Tables keep readable columns and scroll sideways inside their card. */
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+    /* scroll shadows: a soft edge appears on whichever side has more columns */
+    background:
+      linear-gradient(90deg, var(--card) 30%, #fff0) left / 28px 100% no-repeat local,
+      linear-gradient(270deg, var(--card) 30%, #fff0) right / 28px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, #0e283f26, #0000) left / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, #0e283f26, #0000) right / 12px 100% no-repeat scroll;
+  }
+  .table-wrap tbody tr:nth-child(even) td, .table-wrap td { background-clip: padding-box; }
+  .mobile-assets { padding: 0 14px; }
+  .table-wrap table:has(th:nth-child(4)) { min-width: 620px; }
+
+  .network-main { padding: 16px 14px 12px; }
+  .network-title h1 { font-size: 21px; }
+  .network-stat strong { font-size: 20px; }
+  .station-switcher { grid-template-columns: 1fr 1fr; }
+  .station-header { flex-wrap: wrap; padding: 16px 14px 4px; }
+  .station-header h2 { font-size: 21px; }
+  .delivery-journey { flex-wrap: nowrap; }
+
+  .modal { width: calc(100vw - 20px) !important; max-width: none !important; max-height: calc(100dvh - 24px); }
+  .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .modal-foot { position: sticky; bottom: 0; z-index: 2; background: var(--card); }
+  .modal-body { padding: 16px 14px; }
+  .form-grid { grid-template-columns: 1fr; }
+}
