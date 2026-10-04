@@ -1345,3 +1345,24 @@ textarea.input{resize:vertical;width:100%;font-family:inherit;}
   .modal-body { padding: 16px 14px; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* =====================================================================
+   TABLE FIT (desktop & tablet) — keep with the overrides at the end.
+   Every cell used to be nowrap with 20px side padding, so long text
+   (audit values, RTT reasons, roles, narrations) pushed the row's action
+   buttons past the card edge. Long-text cells now wrap (class "wrap"),
+   and side padding is tighter between columns.
+   ===================================================================== */
+thead th, tbody td { padding-left: 14px; padding-right: 14px; }
+thead th:first-child, tbody td:first-child { padding-left: 20px; }
+thead th:last-child, tbody td:last-child { padding-right: 20px; }
+tbody td.wrap { white-space: normal; min-width: 92px; line-height: 1.4; }
+tbody td.wrap.wide { min-width: 200px; }
+thead th { white-space: normal; vertical-align: bottom; line-height: 1.3; }
+td.actions-cell .row-actions { flex-wrap: wrap; row-gap: 6px; min-width: 120px; }
+.stack-col > .panel { margin-bottom: 16px; }
+@media (max-width: 1300px) {
+  thead th, tbody td { padding-left: 10px; padding-right: 10px; }
+  thead th:first-child, tbody td:first-child { padding-left: 16px; }
+  thead th:last-child, tbody td:last-child { padding-right: 16px; }
+}

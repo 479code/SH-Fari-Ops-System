@@ -17,9 +17,9 @@ function renderRow(r) {
     <td class="strong mono-tag">${dateTime(r.createdAt)}</td>
     <td>${r.userName}</td>
     <td>${actionPill(r.action)}</td>
-    <td><span class="mono-tag">${r.recordRef ?? (r.resourceId ? `#${r.resourceId}` : "—")}</span> <span class="muted small">${r.resource.replaceAll("_", " ")}</span></td>
-    <td title="${oldText}">${truncate(oldText)}</td>
-    <td title="${newText}">${truncate(newText)}</td></tr>`;
+    <td class="wrap"><span class="mono-tag">${r.recordRef ?? (r.resourceId ? `#${r.resourceId}` : "—")}</span> <span class="muted small">${r.resource.replaceAll("_", " ")}</span></td>
+    <td class="wrap" title="${oldText}">${truncate(oldText)}</td>
+    <td class="wrap wide" title="${newText}">${truncate(newText)}</td></tr>`;
 }
 
 const filters = () => ({

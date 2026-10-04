@@ -22,7 +22,7 @@ function renderRow(e) {
   }
   const pill = e.status === "pending" ? html`<span class="pill amber">Pending — above threshold</span>` : statusPill(e.status);
   return html`<tr title="${[e.ref, e.decisionNote].filter(Boolean).join(" · ")}">
-    <td class="strong">${shortDate(e.businessDate)}</td><td>${e.stationName}</td><td>${e.narration}</td><td>${e.payee}</td>
+    <td class="strong">${shortDate(e.businessDate)}</td><td class="wrap">${e.stationName}</td><td class="wrap">${e.narration}</td><td class="wrap">${e.payee}</td>
     <td class="num">${number(e.amount)}</td><td>${pill}</td><td class="actions-cell"><div class="row-actions">${buttons}</div></td></tr>`;
 }
 

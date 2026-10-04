@@ -175,7 +175,7 @@ function userRow(u) {
   const actions = can("users.manage")
     ? html`<div class="row-actions"><button class="btn btn-xs" data-user="edit" data-id="${u.id}">Edit</button><button class="btn btn-xs" data-user="reset" data-id="${u.id}">Reset link</button>${u.locked ? html`<button class="btn btn-xs" data-user="unlock" data-id="${u.id}">Unlock</button>` : ""}</div>`
     : "";
-  return html`<tr><td class="strong">${u.fullName} <span class="muted small">${u.username}</span></td><td style="white-space:normal">${u.roles ?? "—"}</td><td>${u.stationName ?? "All"}</td>
+  return html`<tr><td class="strong">${u.fullName} <span class="muted small">${u.username}</span></td><td class="wrap">${u.roles ?? "—"}</td><td>${u.stationName ?? "All"}</td>
     <td>${statusPill(u.status)}${u.locked ? html` <span class="pill red">Locked</span>` : ""}${u.mustChangePassword ? html` <span class="pill amber">Temp password</span>` : ""}</td><td class="actions-cell">${actions}</td></tr>`;
 }
 
@@ -319,7 +319,7 @@ async function loadProducts() {
     5,
     () => api.get("/products"),
     (p) => html`<tr><td class="strong">${p.code} <span class="muted small">${p.name}</span></td><td class="num">${p.defaultPrice === null ? "Not set" : price(p.defaultPrice)}</td>
-      <td>${p.priceEffectiveFrom ? date(p.priceEffectiveFrom) : "—"}${p.stationOverrides ? ` · ${p.stationOverrides} station override(s)` : ""}</td><td>${statusPill(p.status)}</td>
+      <td class="wrap">${p.priceEffectiveFrom ? date(p.priceEffectiveFrom) : "—"}${p.stationOverrides ? ` · ${p.stationOverrides} station override(s)` : ""}</td><td>${statusPill(p.status)}</td>
       <td class="actions-cell"><div class="row-actions">${can("products.manage") ? html`<button class="btn btn-xs btn-primary" data-product="price" data-id="${p.id}">Set price</button>` : ""}<button class="btn btn-xs" data-product="history" data-id="${p.id}">History</button>${can("products.manage") ? html`<button class="btn btn-xs" data-product="edit" data-id="${p.id}">Edit</button>` : ""}</div></td></tr>`,
     { empty: "No products." },
   );

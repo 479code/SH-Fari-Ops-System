@@ -34,8 +34,8 @@ function renderRow(r) {
     <td class="num">${number(r.quantity)}</td>
     <td class="num">${price(r.orderPrice)}</td>
     <td class="num">${price(r.landingPrice)}</td>
-    <td class="mono-tag">${r.waybillRef}${r.gitOrderRef ? html` · ${r.gitOrderRef}` : ""}</td>
-    <td>${r.stationName}</td>
+    <td class="mono-tag wrap">${r.waybillRef}${r.gitOrderRef ? html` · ${r.gitOrderRef}` : ""}</td>
+    <td class="wrap">${r.stationName}</td>
     <td>${statusPill(r.status)}</td>
     <td class="actions-cell">${rowActions(r)}</td>
   </tr>`;

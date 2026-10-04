@@ -18,8 +18,8 @@ function renderRow(r) {
         ? html`<button class="btn btn-xs" data-cancel-rtt="${r.id}">Cancel</button>`
         : "";
   return html`<tr title="${r.cancelReason ?? ""}">
-    <td class="strong">${date(r.businessDate)}</td><td>${r.stationName}</td><td>${r.pumpName}</td><td>${r.productCode}</td>
-    <td class="num">${litres(r.quantity)}</td><td>${r.reason}</td><td>${r.operatorName}</td><td class="mono-tag">${r.ref}</td>
+    <td class="strong">${date(r.businessDate)}</td><td class="wrap">${r.stationName}</td><td>${r.pumpName}</td><td>${r.productCode}</td>
+    <td class="num">${litres(r.quantity)}</td><td class="wrap wide">${r.reason}</td><td>${r.operatorName}</td><td class="mono-tag">${r.ref}</td>
     <td class="actions-cell">${action}</td></tr>`;
 }
 
