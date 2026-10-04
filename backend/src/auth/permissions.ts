@@ -62,9 +62,6 @@ export const PERMISSIONS = {
   "users.manage": { module: "Setup", description: "Create, edit, suspend users and issue password resets" },
   "roles.view": { module: "Setup", description: "View roles and permissions" },
   "roles.manage": { module: "Setup", description: "Create and edit roles and their permissions" },
-
-  "companies.view": { module: "Platform", description: "View companies (tenants)" },
-  "companies.manage": { module: "Platform", description: "Create and edit companies, including their logo" },
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -80,14 +77,9 @@ export interface RoleDefinition {
 
 export const SYSTEM_ROLES: RoleDefinition[] = [
   {
-    name: "Platform Administrator",
-    description: "Cross-company access: create and manage companies, and everything a System Administrator can do within any of them. Assign this only to users with no company (companyId = null).",
-    permissions: ALL_PERMISSIONS,
-  },
-  {
     name: "System Administrator",
-    description: "System configuration, users, roles, master data and audit access — scoped to one company.",
-    permissions: ALL_PERMISSIONS.filter((p) => p !== "companies.manage" && p !== "companies.view"),
+    description: "System configuration, users, roles, master data and audit access.",
+    permissions: ALL_PERMISSIONS,
   },
   {
     name: "Station Manager",

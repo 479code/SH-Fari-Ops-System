@@ -20,9 +20,6 @@ import { logger } from "../utils/logger.ts";
 import { closeDb, db } from "./client.ts";
 import { permissions, products, rolePermissions, roles, settings, userRoles, users } from "./schema/index.ts";
 
-/** Every system role whose permission set should always be resynced to its full definition (not just created once). */
-const ALWAYS_RESYNCED_ROLES = new Set(["Platform Administrator", "System Administrator"]);
-
 const CORE_PRODUCTS = [
   { code: "PMS", name: "Premium Motor Spirit" },
   { code: "AGO", name: "Automotive Gas Oil" },
@@ -60,8 +57,8 @@ export async function seedCore(): Promise<SeedResult> {
         await tx.insert(rolePermissions).values(def.permissions.map((code) => ({ roleId: roleId!, permissionId: permId.get(code)! })));
       } else {
         await tx.update(roles).set({ isSystem: true }).where(eq(roles.id, roleId));
-        if (ALWAYS_RESYNCED_ROLES.has(def.name)) {
-          await tx.insert(rolePermissions).ignore().values(def.permissions.map((code) => ({ roleId: roleId!, permissionId: permId.get(code)! })));
+        if (def.name === "System Administrator") {
+          await tx.insert(rolePermissions).ignore().values(ALL_PERMISSIONS.map((code) => ({ roleId: roleId!, permissionId: permId.get(code)! })));
         }
       }
     }
@@ -71,18 +68,13 @@ export async function seedCore(): Promise<SeedResult> {
     const defaults = settingsSchema.parse({});
     await tx.insert(settings).ignore().values(Object.entries(defaults).map(([key, value]) => ({ key, value: JSON.stringify(value) })));
 
-    // First administrator — the platform super-admin (companyId null), who then
-    // creates the first real company and its own company-scoped administrator
-    // through the app. (An existing single-tenant install that already has a
-    // "System Administrator" is handled by the multi-tenancy migration instead,
-    // which backfills every existing user into the default company — this
-    // bootstrap only fires on a genuinely empty `users` table.)
-    const [adminRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, "Platform Administrator"));
+    // First administrator
+    const [adminRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, "System Administrator"));
     const activeAdmins = await tx
       .select({ username: users.username })
       .from(users)
       .innerJoin(userRoles, eq(userRoles.userId, users.id))
-      .where(and(eq(userRoles.roleId, adminRole!.id), eq(users.status, "active"), isNull(users.deletedAt), isNull(users.companyId)));
+      .where(and(eq(userRoles.roleId, adminRole!.id), eq(users.status, "active"), isNull(users.deletedAt)));
     if (activeAdmins.length > 0) return { adminCreated: false, existingAdmins: activeAdmins.map((a) => a.username) };
 
     const username = env.SEED_ADMIN_USERNAME.toLowerCase();

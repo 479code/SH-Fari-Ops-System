@@ -5,9 +5,7 @@ export interface Actor {
   id: number;
   username: string;
   fullName: string;
-  /** null = the platform super-administrator, who works across every company. Every other actor belongs to exactly one. */
-  companyId: number | null;
-  /** null = the user may work across all stations (within their own company, unless companyId is also null). */
+  /** null = the user may work across all stations. */
   stationId: number | null;
   roles: string[];
   permissions: ReadonlySet<string>;

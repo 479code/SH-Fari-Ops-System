@@ -34,13 +34,10 @@ const atLeastOne = (d: Record<string, unknown>) => Object.values(d).some((v) => 
 /* Stations, tanks, pumps ---------------------------------------------------- */
 
 export const stationCreateSchema = z.object({
-  /** Only honored for the platform super-admin; a company-scoped actor is always assigned to their own company. */
-  companyId: idSchema.optional(),
   code: code("Station code"),
   name: requiredText("Station name", 120),
   address: optionalText(255),
   managerUserId: idSchema.nullable().optional(),
-  photoUrl: optionalText(255),
   cashTolerance: zeroDefault(moneyAmount("Cash tolerance", { allowZero: true })),
   stockTolerance: zeroDefault(litresAmount("Stock tolerance", { allowZero: true })),
 });
@@ -50,7 +47,6 @@ export const stationUpdateSchema = z
     name: requiredText("Station name", 120).optional(),
     address: optionalText(255),
     managerUserId: idSchema.nullable().optional(),
-    photoUrl: optionalText(255),
     cashTolerance: moneyAmount("Cash tolerance", { allowZero: true }).optional(),
     stockTolerance: litresAmount("Stock tolerance", { allowZero: true }).optional(),
     status: status.optional(),
@@ -135,8 +131,6 @@ export const userCreateSchema = z.object({
   fullName: requiredText("Full name", 120),
   email: email.optional(),
   phone: optionalText(30),
-  /** Which company this user belongs to. Only the platform super-admin may set this (or leave it null to create another platform admin); for everyone else it's forced to their own company. */
-  companyId: idSchema.nullable().optional(),
   stationId: idSchema.nullable().optional(),
   roleIds: z.array(idSchema).min(1, "Assign at least one role.").max(10),
   password: passwordPolicy,
@@ -155,29 +149,11 @@ export const userUpdateSchema = z
 
 export const userListQuery = z.object({
   search: searchQuery,
-  /** Only honored for the platform super-admin; everyone else is always scoped to their own company. */
-  companyId: optionalIdQuery,
   stationId: optionalIdQuery,
   roleId: optionalIdQuery,
   status: optionalEnumQuery(["active", "suspended"] as const),
   ...paginationQuery,
 });
-
-/* Companies (platform super-admin only) ------------------------------------- */
-
-export const companyCreateSchema = z.object({
-  code: code("Company code"),
-  name: requiredText("Company name", 120),
-  logoUrl: optionalText(255),
-});
-
-export const companyUpdateSchema = z
-  .object({
-    name: requiredText("Company name", 120).optional(),
-    logoUrl: optionalText(255),
-    status: status.optional(),
-  })
-  .refine(atLeastOne, "Nothing to update.");
 
 const permissionCodes = z
   .array(z.string())

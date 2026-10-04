@@ -21,7 +21,6 @@ import { auditRoutes, dashboardRoutes, exceptionRoutes, lookupRoutes, reportRout
 import { dsrRoutes, gitRoutes, receiptRoutes, rttRoutes, stockRoutes } from "./routes/operations.routes.ts";
 import {
   bankRoutes,
-  companyRoutes,
   narrationRoutes,
   productRoutes,
   pumpRoutes,
@@ -80,7 +79,6 @@ export function createApp() {
   api.route("/reports", reportRoutes);
   api.route("/audit", auditRoutes);
 
-  api.route("/companies", companyRoutes);
   api.route("/stations", stationRoutes);
   api.route("/tanks", tankRoutes);
   api.route("/pumps", pumpRoutes);

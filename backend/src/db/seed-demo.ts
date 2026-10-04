@@ -56,7 +56,6 @@ async function actorFor(username: string): Promise<Actor> {
     id: u.id,
     username: u.username,
     fullName: u.fullName,
-    companyId: u.companyId,
     stationId: u.stationId,
     roles: access.roles,
     permissions: new Set(access.permissions),

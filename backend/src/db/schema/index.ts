@@ -1,4 +1,3 @@
-export * from "./tenancy.ts";
 export * from "./auth.ts";
 export * from "./master.ts";
 export * from "./operations.ts";

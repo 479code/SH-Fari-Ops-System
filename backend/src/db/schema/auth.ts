@@ -2,7 +2,6 @@
 import { boolean, index, int, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
 import { createdAt, fk, id, instant, updatedAt } from "./columns.ts";
 import { stations } from "./master.ts";
-import { companies } from "./tenancy.ts";
 
 export const users = mysqlTable(
   "users",
@@ -13,9 +12,7 @@ export const users = mysqlTable(
     email: varchar({ length: 190 }).unique(),
     phone: varchar({ length: 30 }),
     passwordHash: varchar({ length: 255 }).notNull(),
-    /** null = the platform super-administrator, who is not scoped to any one company. Every other user belongs to exactly one. */
-    companyId: fk().references(() => companies.id, { onDelete: "restrict" }),
-    /** null = access to all stations within this user's company (or, for the platform super-admin, all stations everywhere). */
+    /** null = access to all stations. */
     stationId: fk().references(() => stations.id, { onDelete: "restrict" }),
     status: mysqlEnum(["active", "suspended"]).notNull().default("active"),
     mustChangePassword: boolean().notNull().default(false),
@@ -28,7 +25,7 @@ export const users = mysqlTable(
     updatedAt: updatedAt(),
     deletedAt: instant(),
   },
-  (t) => [index("users_company_idx").on(t.companyId), index("users_station_idx").on(t.stationId), index("users_status_idx").on(t.status)],
+  (t) => [index("users_station_idx").on(t.stationId), index("users_status_idx").on(t.status)],
 );
 
 export const roles = mysqlTable("roles", {

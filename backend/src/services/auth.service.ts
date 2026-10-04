@@ -9,7 +9,6 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { env } from "../config/env.ts";
 import { db } from "../db/client.ts";
 import {
-  companies,
   passwordResetTokens,
   permissions,
   rolePermissions,
@@ -37,9 +36,6 @@ export interface Profile {
   fullName: string;
   email: string | null;
   phone: string | null;
-  companyId: number | null;
-  companyName: string | null;
-  companyLogoUrl: string | null;
   stationId: number | null;
   stationName: string | null;
   roles: string[];
@@ -75,9 +71,6 @@ export async function getProfile(userId: number): Promise<Profile> {
       fullName: users.fullName,
       email: users.email,
       phone: users.phone,
-      companyId: users.companyId,
-      companyName: companies.name,
-      companyLogoUrl: companies.logoUrl,
       stationId: users.stationId,
       stationName: stations.name,
       mustChangePassword: users.mustChangePassword,
@@ -85,7 +78,6 @@ export async function getProfile(userId: number): Promise<Profile> {
     })
     .from(users)
     .leftJoin(stations, eq(stations.id, users.stationId))
-    .leftJoin(companies, eq(companies.id, users.companyId))
     .where(and(eq(users.id, userId), isNull(users.deletedAt)))
     .limit(1);
   if (!row) throw notFound("User");
@@ -203,7 +195,6 @@ export async function resolveSession(token: string, client: ClientInfo, options:
       revokedAt: sessions.revokedAt,
       username: users.username,
       fullName: users.fullName,
-      companyId: users.companyId,
       stationId: users.stationId,
       status: users.status,
       deletedAt: users.deletedAt,
@@ -234,7 +225,6 @@ export async function resolveSession(token: string, client: ClientInfo, options:
     id: row.userId,
     username: row.username,
     fullName: row.fullName,
-    companyId: row.companyId,
     stationId: row.stationId,
     roles: access.roles,
     permissions: new Set(access.permissions),
